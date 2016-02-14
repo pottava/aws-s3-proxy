@@ -1,0 +1,30 @@
+# docker-compose -f dev/docker-compose-godep.yml run save
+# docker-compose -f dev/docker-compose-godep.yml run update
+# docker-compose -f dev/docker-compose-godep.yml run restore
+
+save:
+  image: pottava/godep:go1.5
+  command: save ./...
+  environment:
+    - GO15VENDOREXPERIMENT=1
+  volumes:
+    - $GOPATH/src:/go/src
+  working_dir: /go/src/github.com/pottava/aws-s3-proxy
+
+update:
+  image: pottava/godep:go1.5
+  command: update github.com/...
+  environment:
+    - GO15VENDOREXPERIMENT=1
+  volumes:
+    - $GOPATH/src:/go/src
+  working_dir: /go/src/github.com/pottava/aws-s3-proxy
+
+restore:
+  image: pottava/godep:go1.5
+  command: restore
+  environment:
+    - GO15VENDOREXPERIMENT=1
+  volumes:
+    - $GOPATH/src:/go/src
+  working_dir: /go/src/github.com/pottava/aws-s3-proxy

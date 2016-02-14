@@ -1,0 +1,37 @@
+machine:
+  environment:
+    GO15VENDOREXPERIMENT: 1
+    REPO_ROOT: "${HOME}/.go_workspace/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
+    CHECKOUT_PATH: ${HOME}/${CIRCLE_PROJECT_REPONAME}
+  post:
+    - >
+      echo "export BUILD_VERSION=\"`git --git-dir=${CHECKOUT_PATH}/.git describe --always --dirty`\"" >> ~/.circlerc;
+      echo "export BUILD_DATE=\"`date +%FT%T%z`\"" >> ~/.circlerc;
+
+dependencies:
+  pre:
+    - go get -u github.com/tools/godep
+    - go get -u github.com/golang/lint/golint
+
+checkout:
+  post:
+    - mkdir -p ${REPO_ROOT}
+    - cp -rf ${CHECKOUT_PATH} ${HOME}/.go_workspace/src/github.com/${CIRCLE_PROJECT_USERNAME}/
+
+test:
+  pre:
+    - cd ${REPO_ROOT} && godep restore
+  override:
+    - cd ${REPO_ROOT} && for package in `go list ./...| grep -v vendor`; do golint ${package}; done
+    - cd ${REPO_ROOT} && test -z "$(gofmt -s -l . | tee /dev/stderr)"
+    - cd ${REPO_ROOT} && go vet ./...
+    - cd ${REPO_ROOT} && godep go test -cover -bench -benchmem `go list ./... | grep -v /vendor/` -v
+
+deployment:
+  release:
+    tag: /v[0-9]+(\.[0-9]+)*/
+    commands:
+      - go get github.com/mitchellh/gox
+      - go get github.com/tcnksm/ghr
+      - gox --osarch "linux/amd64 darwin/amd64 windows/amd64" -ldflags "-X main.version $BUILD_VERSION -X main.date $BUILD_DATE" -output "dist/${CIRCLE_PROJECT_REPONAME}_{{.OS}}_{{.Arch}}"
+      - ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/
