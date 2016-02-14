@@ -43,13 +43,12 @@ proxy:
   image: pottava/s3-proxy
   ports:
     - 8080:80
-  links:
-    - web
   environment:
     - AWS_REGION=ap-northeast-1
     - AWS_ACCESS_KEY_ID
     - AWS_SECRET_ACCESS_KEY
     - AWS_S3_BUCKET
+    - BASIC_AUTH_USER=admin
     - BASIC_AUTH_PASS=password
     - ACCESS_LOG=true
   container_name: proxy
