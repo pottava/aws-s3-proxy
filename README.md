@@ -13,18 +13,18 @@ You don't need to configure a Bucket for `Website Hosting`.
 
 ### 1. Set environment variables
 
-Environment Variables     | Description                                       | Required
-------------------------- | ------------------------------------------------- | ---------
-AWS_S3_BUCKET             | The `S3 bucket` to be proxied with this app.      | *
-AWS_REGION                | The AWS `region` where the S3 bucket exists.      | *
-AWS_ACCESS_KEY_ID         | AWS `access key` for API access.                  | or EC2 Instance Role
-AWS_SECRET_ACCESS_KEY     | AWS `secret key` for API access.                  | 
-BASIC_AUTH_USER           | User for basic authentication.                    | 
-BASIC_AUTH_PASS           | Password for basic authentication.                | 
-APP_PORT                  | The port number to be assigned for listening.     | 
-SSL_CERT_PATH             | TLS: cert.pem file path.                          | 
-SSL_KEY_PATH              | TLS: key.pem file path.                           | 
-ACCESS_LOG                | Send access logs to /dev/stdout. (default: false) | 
+Environment Variables     | Description                                       | Required | Default 
+------------------------- | ------------------------------------------------- | -------- | -----------------
+AWS_S3_BUCKET             | The `S3 bucket` to be proxied with this app.      | *        | 
+AWS_REGION                | The AWS `region` where the S3 bucket exists.      |          | us-east-1
+AWS_ACCESS_KEY_ID         | AWS `access key` for API access.                  |          | EC2 Instance Role
+AWS_SECRET_ACCESS_KEY     | AWS `secret key` for API access.                  |          | EC2 Instance Role
+BASIC_AUTH_USER           | User for basic authentication.                    |          | -
+BASIC_AUTH_PASS           | Password for basic authentication.                |          | -
+SSL_CERT_PATH             | TLS: cert.pem file path.                          |          | -
+SSL_KEY_PATH              | TLS: key.pem file path.                           |          | -
+APP_PORT                  | The port number to be assigned for listening.     |          | 80
+ACCESS_LOG                | Send access logs to /dev/stdout.                  |          | false
 
 ### 2. Run the application
 

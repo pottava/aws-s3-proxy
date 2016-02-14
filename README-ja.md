@@ -12,17 +12,17 @@ API 経由でアクセスするため、バケットに静的 Web サイトホ�
 
 ### 1. 環境変数をセットします
 
-環境変数                   | 説明                                             | 必須
-------------------------- | ----------------------------------------------- | ---------
-AWS_S3_BUCKET             | プロキシ先の S3 バケット                           | *
-AWS_REGION                | バケットの存在する AWS リージョン                    | *
-AWS_ACCESS_KEY_ID         | API を使うための AWS アクセスキー                   | インスタンスロールでも OK
-AWS_SECRET_ACCESS_KEY     | API を使うための AWS シークレットキー                | 
-BASIC_AUTH_PASS           | Basic 認証をかけるなら、その `パスワード`            | 
-APP_PORT                  | このサービスが待機する `ポート番号` （デフォルト 80番） | 
-SSL_CERT_PATH             | TLS を有効にしたいなら、その `cert.pem` へのパス     | 
-SSL_KEY_PATH              | TLS を有効にしたいなら、その `key.pem` へのパス      | 
-ACCESS_LOG                | 標準出力へアクセスログを送る (初期値: false)          | 
+環境変数                   | 説明                                             | 必須    | 初期値
+------------------------- | ----------------------------------------------- | ------ | ---
+AWS_S3_BUCKET             | プロキシ先の S3 バケット                           | *       | 
+AWS_REGION                | バケットの存在する AWS リージョン                    |        | us-east-1
+AWS_ACCESS_KEY_ID         | API を使うための AWS アクセスキー                   |        | EC2 インスタンスロール
+AWS_SECRET_ACCESS_KEY     | API を使うための AWS シークレットキー                |        | EC2 インスタンスロール
+BASIC_AUTH_PASS           | Basic 認証をかけるなら、その `パスワード`            |        | -
+SSL_CERT_PATH             | TLS を有効にしたいなら、その `cert.pem` へのパス     |        | -
+SSL_KEY_PATH              | TLS を有効にしたいなら、その `key.pem` へのパス      |        | -
+APP_PORT                  | このサービスが待機する `ポート番号`                  |        | 80
+ACCESS_LOG                | 標準出力へアクセスログを送る                        |        | false
 
 ### 2. アプリを起動します
 

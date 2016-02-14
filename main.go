@@ -61,11 +61,12 @@ func configFromEnvironmentVariables() *config {
 	if len(os.Getenv("AWS_SECRET_ACCESS_KEY")) == 0 {
 		log.Print("Not defined environment variable: AWS_SECRET_ACCESS_KEY")
 	}
-	if len(os.Getenv("AWS_REGION")) == 0 {
-		log.Fatal("Missing required environment variable: AWS_REGION")
-	}
 	if len(os.Getenv("AWS_S3_BUCKET")) == 0 {
 		log.Fatal("Missing required environment variable: AWS_S3_BUCKET")
+	}
+	region := os.Getenv("AWS_REGION")
+	if len(region) == 0 {
+		region = "us-east-1"
 	}
 	port := os.Getenv("APP_PORT")
 	if len(port) == 0 {
@@ -76,7 +77,7 @@ func configFromEnvironmentVariables() *config {
 		accessLog = b
 	}
 	conf := &config{
-		awsRegion:     os.Getenv("AWS_REGION"),
+		awsRegion:     region,
 		s3Bucket:      os.Getenv("AWS_S3_BUCKET"),
 		basicAuthUser: os.Getenv("BASIC_AUTH_USER"),
 		basicAuthPass: os.Getenv("BASIC_AUTH_PASS"),
@@ -87,6 +88,7 @@ func configFromEnvironmentVariables() *config {
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", conf.s3Bucket)
+	log.Printf("[config] AWS Region: %v", conf.awsRegion)
 
 	// TLS pem files
 	if (len(conf.sslCert) > 0) && (len(conf.sslKey) > 0) {
