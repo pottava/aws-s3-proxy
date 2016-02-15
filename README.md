@@ -6,6 +6,9 @@
 
 This is a reverse proxy for AWS S3, which is able to provide basic authentication as well.  
 You don't need to configure a Bucket for `Website Hosting`.  
+
+http://this-proxy.com/access/ -> s3://backet/access/index.html
+
 ([日本語はこちら](https://github.com/pottava/aws-s3-proxy/blob/master/README-ja.md))
 
 
@@ -16,9 +19,12 @@ You don't need to configure a Bucket for `Website Hosting`.
 Environment Variables     | Description                                       | Required | Default 
 ------------------------- | ------------------------------------------------- | -------- | -----------------
 AWS_S3_BUCKET             | The `S3 bucket` to be proxied with this app.      | *        | 
+AWS_S3_KEY_PREFIX         | You can configure `S3 object key` prefix.         |          | -
 AWS_REGION                | The AWS `region` where the S3 bucket exists.      |          | us-east-1
 AWS_ACCESS_KEY_ID         | AWS `access key` for API access.                  |          | EC2 Instance Role
 AWS_SECRET_ACCESS_KEY     | AWS `secret key` for API access.                  |          | EC2 Instance Role
+HTTP_CACHE_CONTROL        | Overrides S3's HTTP `Cache-Control` header.       |          | S3 Object metadata
+HTTP_EXPIRES              | Overrides S3's HTTP `Expires` header.             |          | S3 Object metadata
 BASIC_AUTH_USER           | User for basic authentication.                    |          | -
 BASIC_AUTH_PASS           | Password for basic authentication.                |          | -
 SSL_CERT_PATH             | TLS: cert.pem file path.                          |          | -

@@ -17,14 +17,17 @@ import (
 )
 
 type config struct {
-	awsRegion     string // AWS_REGION
-	s3Bucket      string // AWS_S3_BUCKET
-	basicAuthUser string // BASIC_AUTH_USER
-	basicAuthPass string // BASIC_AUTH_PASS
-	port          string // APP_PORT
-	accessLog     bool   // ACCESS_LOG
-	sslCert       string // SSL_CERT_PATH
-	sslKey        string // SSL_KEY_PATH
+	awsRegion        string // AWS_REGION
+	s3Bucket         string // AWS_S3_BUCKET
+	s3KeyPrefix      string // AWS_S3_KEY_PREFIX
+	httpCacheControl string // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
+	httpExpires      string // HTTP_EXPIRES (Thu, 01 Dec 1994 16:00:00 GMT ...)
+	basicAuthUser    string // BASIC_AUTH_USER
+	basicAuthPass    string // BASIC_AUTH_PASS
+	port             string // APP_PORT
+	accessLog        bool   // ACCESS_LOG
+	sslCert          string // SSL_CERT_PATH
+	sslKey           string // SSL_KEY_PATH
 }
 
 var (
@@ -77,14 +80,17 @@ func configFromEnvironmentVariables() *config {
 		accessLog = b
 	}
 	conf := &config{
-		awsRegion:     region,
-		s3Bucket:      os.Getenv("AWS_S3_BUCKET"),
-		basicAuthUser: os.Getenv("BASIC_AUTH_USER"),
-		basicAuthPass: os.Getenv("BASIC_AUTH_PASS"),
-		port:          port,
-		accessLog:     accessLog,
-		sslCert:       os.Getenv("SSL_CERT_PATH"),
-		sslKey:        os.Getenv("SSL_KEY_PATH"),
+		awsRegion:        region,
+		s3Bucket:         os.Getenv("AWS_S3_BUCKET"),
+		s3KeyPrefix:      os.Getenv("AWS_S3_KEY_PREFIX"),
+		httpCacheControl: os.Getenv("HTTP_CACHE_CONTROL"),
+		httpExpires:      os.Getenv("HTTP_EXPIRES"),
+		basicAuthUser:    os.Getenv("BASIC_AUTH_USER"),
+		basicAuthPass:    os.Getenv("BASIC_AUTH_PASS"),
+		port:             port,
+		accessLog:        accessLog,
+		sslCert:          os.Getenv("SSL_CERT_PATH"),
+		sslKey:           os.Getenv("SSL_KEY_PATH"),
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", conf.s3Bucket)
@@ -101,25 +107,55 @@ func configFromEnvironmentVariables() *config {
 	return conf
 }
 
+type custom struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *custom) WriteHeader(status int) {
+	r.ResponseWriter.WriteHeader(status)
+	r.status = status
+}
+
 func wrapper(f func(w http.ResponseWriter, r *http.Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if (len(c.basicAuthUser) > 0) && (len(c.basicAuthPass) > 0) && !auth(r, c.basicAuthUser, c.basicAuthPass) {
+		if (len(c.basicAuthUser) > 0) && (len(c.basicAuthPass) > 0) && !auth(r) {
 			w.Header().Set("WWW-Authenticate", `Basic realm="REALM"`)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
-		f(w, r)
+		proc := time.Now()
+		addr := r.RemoteAddr
+		if ip, found := header(r, "X-Forwarded-For"); found {
+			addr = ip
+		}
+		writer := &custom{ResponseWriter: w, status: http.StatusOK}
+		f(writer, r)
+
 		if c.accessLog {
-			log.Printf("%s %s %s", r.RemoteAddr, r.Method, r.URL)
+			log.Printf("[%s] %.3f %d %s %s",
+				addr, time.Now().Sub(proc).Seconds(),
+				writer.status, r.Method, r.URL)
 		}
 	})
 }
 
-func auth(r *http.Request, user, pass string) bool {
+func auth(r *http.Request) bool {
 	if username, password, ok := r.BasicAuth(); ok {
-		return username == user && password == pass
+		return username == c.basicAuthUser &&
+			password == c.basicAuthPass
 	}
 	return false
+}
+
+func header(r *http.Request, key string) (string, bool) {
+	if r.Header == nil {
+		return "", false
+	}
+	if candidate := r.Header[key]; len(candidate) > 0 {
+		return candidate[0], true
+	}
+	return "", false
 }
 
 func awss3(w http.ResponseWriter, r *http.Request) {
@@ -127,49 +163,55 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 	if strings.HasSuffix(path, "/") {
 		path += "index.html"
 	}
-	obj, err := s3get(c.s3Bucket, path)
+	obj, err := s3get(c.s3Bucket, c.s3KeyPrefix+path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	setStrHeader(w, "Cache-Control", obj.CacheControl)
+	if len(c.httpCacheControl) > 0 {
+		setStrHeader(w, "Cache-Control", &c.httpCacheControl)
+	} else {
+		setStrHeader(w, "Cache-Control", obj.CacheControl)
+	}
+	if len(c.httpExpires) > 0 {
+		setStrHeader(w, "Expires", &c.httpExpires)
+	} else {
+		setStrHeader(w, "Expires", obj.Expires)
+	}
 	setStrHeader(w, "Content-Disposition", obj.ContentDisposition)
 	setStrHeader(w, "Content-Encoding", obj.ContentEncoding)
 	setStrHeader(w, "Content-Language", obj.ContentLanguage)
 	setIntHeader(w, "Content-Length", obj.ContentLength)
 	setStrHeader(w, "Content-Range", obj.ContentRange)
 	setStrHeader(w, "Content-Type", obj.ContentType)
-	setStrHeader(w, "ETag", obj.ETag)
-	setStrHeader(w, "Expires", obj.Expires)
 	setTimeHeader(w, "Last-Modified", obj.LastModified)
+
 	io.Copy(w, obj.Body)
 }
 
 func s3get(backet, key string) (*s3.GetObjectOutput, error) {
+	sess := session.New(aws.NewConfig().WithRegion(c.awsRegion))
 	req := &s3.GetObjectInput{
 		Bucket: aws.String(backet),
 		Key:    aws.String(key),
 	}
-	return s3.New(session.New(aws.NewConfig().WithRegion(c.awsRegion))).GetObject(req)
+	return s3.New(sess).GetObject(req)
 }
 
 func setStrHeader(w http.ResponseWriter, key string, value *string) {
-	if value == nil || len(*value) == 0 {
-		return
+	if value != nil && len(*value) > 0 {
+		w.Header().Add(key, *value)
 	}
-	w.Header().Add(key, *value)
 }
 
 func setIntHeader(w http.ResponseWriter, key string, value *int64) {
-	if value == nil || *value == 0 {
-		return
+	if value != nil && *value > 0 {
+		w.Header().Add(key, strconv.FormatInt(*value, 10))
 	}
-	w.Header().Add(key, strconv.FormatInt(*value, 10))
 }
 
 func setTimeHeader(w http.ResponseWriter, key string, value *time.Time) {
-	if value == nil || reflect.DeepEqual(*value, time.Time{}) {
-		return
+	if value != nil && !reflect.DeepEqual(*value, time.Time{}) {
+		w.Header().Add(key, value.UTC().Format(http.TimeFormat))
 	}
-	w.Header().Add(key, value.UTC().Format(http.TimeFormat))
 }

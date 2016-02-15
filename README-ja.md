@@ -7,6 +7,8 @@
 API 経由でアクセスするため、バケットに静的 Web サイトホスティングの設定は不要です。  
 オプションでフロントに Basic 認証がかけられます。
 
+http://this-proxy.com/access/ -> s3://backet/access/index.html
+
 
 ## 使い方
 
@@ -15,9 +17,13 @@ API 経由でアクセスするため、バケットに静的 Web サイトホ�
 環境変数                   | 説明                                             | 必須    | 初期値
 ------------------------- | ----------------------------------------------- | ------ | ---
 AWS_S3_BUCKET             | プロキシ先の S3 バケット                           | *       | 
+AWS_S3_KEY_PREFIX         | S3 オブジェクトにプリフィクス文字列があるなら指定       |        | -
 AWS_REGION                | バケットの存在する AWS リージョン                    |        | us-east-1
 AWS_ACCESS_KEY_ID         | API を使うための AWS アクセスキー                   |        | EC2 インスタンスロール
 AWS_SECRET_ACCESS_KEY     | API を使うための AWS シークレットキー                |        | EC2 インスタンスロール
+HTTP_CACHE_CONTROL        | S3 の `Cache-Control` 属性を上書きして返します      |        | S3 オブジェクト属性値
+HTTP_EXPIRES              | S3 の `Expires` 属性を上書きして返します            |        | S3 オブジェクト属性値
+BASIC_AUTH_USER           | Basic 認証をかけるなら、その `ユーザ名`              |        | -
 BASIC_AUTH_PASS           | Basic 認証をかけるなら、その `パスワード`            |        | -
 SSL_CERT_PATH             | TLS を有効にしたいなら、その `cert.pem` へのパス     |        | -
 SSL_KEY_PATH              | TLS を有効にしたいなら、その `key.pem` へのパス      |        | -
