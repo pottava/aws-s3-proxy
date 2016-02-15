@@ -4,7 +4,7 @@
 
 build:
   image: pottava/gox:go1.5
-  command: --osarch "linux/amd64 darwin/amd64 windows/amd64" -ldflags "-X main.version $BUILD_VERSION -X main.date $BUILD_DATE" -output "dist/{{.OS}}_{{.Arch}}"
+  command: --osarch "linux/amd64 darwin/amd64 windows/amd64" -ldflags "-X main.version=$BUILD_VERSION -X=main.date $BUILD_DATE" -output "dist/{{.OS}}_{{.Arch}}"
   environment:
     - GO15VENDOREXPERIMENT=1
   volumes:
