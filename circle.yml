@@ -33,5 +33,6 @@ deployment:
     commands:
       - go get github.com/mitchellh/gox
       - go get github.com/tcnksm/ghr
+      - export GODEBUG=netdns=go
       - gox --osarch "linux/amd64 darwin/amd64 windows/amd64" -ldflags "-X main.version=$BUILD_VERSION -X=main.date $BUILD_DATE" -output "dist/${CIRCLE_PROJECT_REPONAME}_{{.OS}}_{{.Arch}}"
       - ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/
