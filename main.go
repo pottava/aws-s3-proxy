@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -28,6 +30,10 @@ type config struct {
 	accessLog        bool   // ACCESS_LOG
 	sslCert          string // SSL_CERT_PATH
 	sslKey           string // SSL_KEY_PATH
+}
+
+type Symlink struct {
+	URL string
 }
 
 var (
@@ -161,6 +167,25 @@ func header(r *http.Request, key string) (string, bool) {
 
 func awss3(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
+
+	idx := strings.Index(path, "symlink.json")
+	if idx > -1 {
+		symlink, err := s3get(c.s3Bucket, c.s3KeyPrefix+path[:idx+12])
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		var link Symlink
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(symlink.Body)
+		err = json.Unmarshal(buf.Bytes(), &link)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		path = link.URL + path[idx+12:]
+	}
+
 	if strings.HasSuffix(path, "/") {
 		path += "index.html"
 	}
