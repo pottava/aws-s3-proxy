@@ -1,6 +1,6 @@
 # Dockerfile
 
-FROM alpine:3.3
+FROM alpine:3.4
 MAINTAINER @pottava
 
 LABEL com.github.pottava.application="aws-s3-proxy" \
