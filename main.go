@@ -168,6 +168,11 @@ func header(r *http.Request, key string) (string, bool) {
 func awss3(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
+	stripPath := os.Getenv("STRIP_PATH")
+	if len(stripPath) > 0 {
+		path = strings.Replace(path, stripPath, "", 1)
+	}
+
 	idx := strings.Index(path, "symlink.json")
 	if idx > -1 {
 		symlink, err := s3get(c.s3Bucket, c.s3KeyPrefix+path[:idx+12])
