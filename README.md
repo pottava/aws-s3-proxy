@@ -36,6 +36,7 @@ SSL_CERT_PATH             | TLS: cert.pem file path.                          | 
 SSL_KEY_PATH              | TLS: key.pem file path.                           |          | -
 APP_PORT                  | The port number to be assigned for listening.     |          | 80
 ACCESS_LOG                | Send access logs to /dev/stdout.                  |          | false
+STRIP_PATH                | Strip path prefix.                                |          | -
 
 ### 2. Run the application
 
