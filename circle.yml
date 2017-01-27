@@ -28,11 +28,10 @@ dependencies:
 
 test:
   pre:
+    - cd ${REPO_ROOT} && go vet ./...
+    - cd ${REPO_ROOT} && golint ./...
     - cd ${REPO_ROOT} && dep ensure; exit 0
   override:
-    - cd ${REPO_ROOT} && for package in `go list ./...| grep -v vendor`; do golint ${package}; done
-    - cd ${REPO_ROOT} && test -z "$(gofmt -s -l . | tee /dev/stderr)"
-    - cd ${REPO_ROOT} && go vet ./...
     - cd ${REPO_ROOT} && go test -cover -bench -benchmem `go list ./... | grep -v /vendor/` -v
 
 deployment:
