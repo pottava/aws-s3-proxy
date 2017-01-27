@@ -1,7 +1,4 @@
-# Dockerfile
-
-FROM alpine:3.4
-MAINTAINER @pottava
+FROM alpine:3.5
 
 LABEL com.github.pottava.application="aws-s3-proxy" \
       com.github.pottava.usage="docker run -d -p 8080:80 -e AWS_REGION -e AWS_S3_BUCKET -e BASIC_AUTH_USER -e BASIC_AUTH_PASS pottava/s3-proxy" \

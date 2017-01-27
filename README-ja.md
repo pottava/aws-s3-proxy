@@ -29,6 +29,7 @@ SSL_CERT_PATH             | TLS を有効にしたいなら、その `cert.pem` 
 SSL_KEY_PATH              | TLS を有効にしたいなら、その `key.pem` へのパス      |        | -
 APP_PORT                  | このサービスが待機する `ポート番号`                  |        | 80
 ACCESS_LOG                | 標準出力へアクセスログを送る                        |        | false
+STRIP_PATH                | 指定した Prefix を S3 のパスから削除                |         | -
 
 ### 2. アプリを起動します
 

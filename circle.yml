@@ -1,31 +1,39 @@
 machine:
   environment:
-    GO15VENDOREXPERIMENT: 1
-    REPO_ROOT: "${HOME}/.go_workspace/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
-    CHECKOUT_PATH: ${HOME}/${CIRCLE_PROJECT_REPONAME}
+    IMPORT_PATH: "github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+    PRIVATE_GOPATH: "$(echo $GOPATH | sed 's/:.*$//g')" # Needed because CircleCI has two paths in the GOPATH.
+    REPO_ROOT: "$PRIVATE_GOPATH/src/$IMPORT_PATH"
+
+dependencies:
+  cache_directories:
+    - ~/cache
+  pre:
+      # Prepare directories.
+      - mkdir -p ~/cache "$PRIVATE_GOPATH/src/$IMPORT_PATH"
+      # Install go 1.7
+      - sudo rm -rf /usr/local/go
+      - cd ~/cache && if [ ! -e go1.7.5.linux-amd64.tar.gz ]; then wget https://storage.googleapis.com/golang/go1.7.5.linux-amd64.tar.gz; fi
+      - cd ~/cache && sudo tar -C /usr/local -xzf go1.7.5.linux-amd64.tar.gz
+      - go version
+      # Install test utils
+      - go get github.com/golang/dep
+      - go get github.com/golang/lint/golint
   post:
     - >
       echo "export BUILD_VERSION=\"`git --git-dir=${CHECKOUT_PATH}/.git describe --always --dirty`\"" >> ~/.circlerc;
       echo "export BUILD_DATE=\"`date +%FT%T%z`\"" >> ~/.circlerc;
-
-dependencies:
-  pre:
-    - go get -u github.com/tools/godep
-    - go get -u github.com/golang/lint/golint
-
-checkout:
-  post:
-    - mkdir -p ${REPO_ROOT}
-    - cp -rf ${CHECKOUT_PATH} ${HOME}/.go_workspace/src/github.com/${CIRCLE_PROJECT_USERNAME}/
+  override:
+    # Copy repository to GOPATH.
+    - rsync -azC --delete ./ "$PRIVATE_GOPATH/src/$IMPORT_PATH/"
 
 test:
   pre:
-    - cd ${REPO_ROOT} && godep restore
+    - cd ${REPO_ROOT} && dep ensure; exit 0
   override:
     - cd ${REPO_ROOT} && for package in `go list ./...| grep -v vendor`; do golint ${package}; done
     - cd ${REPO_ROOT} && test -z "$(gofmt -s -l . | tee /dev/stderr)"
     - cd ${REPO_ROOT} && go vet ./...
-    - cd ${REPO_ROOT} && godep go test -cover -bench -benchmem `go list ./... | grep -v /vendor/` -v
+    - cd ${REPO_ROOT} && go test -cover -bench -benchmem `go list ./... | grep -v /vendor/` -v
 
 deployment:
   release:

@@ -30,9 +30,10 @@ type config struct {
 	accessLog        bool   // ACCESS_LOG
 	sslCert          string // SSL_CERT_PATH
 	sslKey           string // SSL_KEY_PATH
+	stripPath        string // STRIP_PATH
 }
 
-type Symlink struct {
+type symlink struct {
 	URL string
 }
 
@@ -98,6 +99,7 @@ func configFromEnvironmentVariables() *config {
 		accessLog:        accessLog,
 		sslCert:          os.Getenv("SSL_CERT_PATH"),
 		sslKey:           os.Getenv("SSL_KEY_PATH"),
+		stripPath:        os.Getenv("STRIP_PATH"),
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", conf.s3Bucket)
@@ -168,21 +170,19 @@ func header(r *http.Request, key string) (string, bool) {
 func awss3(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
-	stripPath := os.Getenv("STRIP_PATH")
-	if len(stripPath) > 0 {
-		path = strings.Replace(path, stripPath, "", 1)
+	if len(c.stripPath) > 0 {
+		path = strings.Replace(path, c.stripPath, "", 1)
 	}
-
 	idx := strings.Index(path, "symlink.json")
 	if idx > -1 {
-		symlink, err := s3get(c.s3Bucket, c.s3KeyPrefix+path[:idx+12])
+		result, err := s3get(c.s3Bucket, c.s3KeyPrefix+path[:idx+12])
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		var link Symlink
+		var link symlink
 		buf := new(bytes.Buffer)
-		buf.ReadFrom(symlink.Body)
+		buf.ReadFrom(result.Body)
 		err = json.Unmarshal(buf.Bytes(), &link)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -1,5 +1,3 @@
-Godeps/Readme
 vendor/*
 dist/*
 docker-compose.override.yml
-

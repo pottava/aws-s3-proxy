@@ -1,12 +1,10 @@
 # export BUILD_VERSION=v0.1.0
 # export BUILD_DATE=2016-02-15T12:00:00+0900
-# docker-compose -f dev/docker-compose-gox.yml run build
+# docker-compose -f dev/docker-compose-gox.yml run --rm build
 
 build:
-  image: pottava/gox:go1.5
-  command: --osarch "linux/amd64 darwin/amd64 windows/amd64" -ldflags "-X main.version=$BUILD_VERSION -X=main.date $BUILD_DATE" -output "dist/{{.OS}}_{{.Arch}}"
-  environment:
-    - GO15VENDOREXPERIMENT=1
+  image: pottava/gox:go1.8
+  command: --osarch "linux/amd64 darwin/amd64 windows/amd64" -ldflags "-X main.version=$BUILD_VERSION -X main.date=$BUILD_DATE" -output "dist/{{.OS}}_{{.Arch}}"
   volumes:
     - $GOPATH/src/github.com/pottava/aws-s3-proxy:/go/src/github.com/pottava/aws-s3-proxy
   working_dir: /go/src/github.com/pottava/aws-s3-proxy

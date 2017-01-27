@@ -2,7 +2,7 @@ version: "2"
 
 services:
   app:
-    image: pottava/godep:go1.5
+    image: pottava/golang:1.8
     command: go run /go/src/github.com/pottava/aws-s3-proxy/main.go
     ports:
       - 8080:80
