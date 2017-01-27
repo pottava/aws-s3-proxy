@@ -1,11 +1,9 @@
 # Reverse proxy for AWS S3 w/ basic authentication
 
-[![](https://badge.imagelayers.io/pottava/s3-proxy:latest.svg)](https://imagelayers.io/?images=pottava/s3-proxy:latest 'Get your own badge on imagelayers.io')
-
 ![circleci status](https://circleci.com/gh/pottava/aws-s3-proxy.svg?style=shield&circle-token=9bc17d02e4513df42196523a1791465e65d8ab01) 
 
 Supported tags and respective `Dockerfile` links:  
-・latest ([prod/1.5/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/1.5/Dockerfile))
+・latest ([prod/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/Dockerfile))
 
 ## Description
 
