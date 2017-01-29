@@ -24,16 +24,17 @@ RUN apk --no-cache add --virtual build-dependencies bash gcc musl-dev openssl go
     && patch -p2 -i /no-pic.patch \
     && ./make.bash \
     && export GOPATH=/go \
-    && mkdir -p $GOPATH/src $GOPATH/bin \
-    && chmod -R 777 $GOPATH \
+    && mkdir -p /go/src /go/bin \
+    && chmod -R 777 /go \
 
     # Compile s3-proxy
     && go get -u github.com/pottava/aws-s3-proxy \
+    && mv /go/bin/aws-s3-proxy /aws-s3-proxy \
 
     # Clean up
     && apk del --purge build-dependencies \
-    && rm -rf /usr/local/go $GOPATH/pkg $GOPATH/src /golang.tar.gz /*.patch
+    && rm -rf /usr/local/go /usr/lib/go /go /golang.tar.gz /*.patch
 
 EXPOSE 80
 
-ENTRYPOINT ["/go/bin/aws-s3-proxy"]
+CMD ["/aws-s3-proxy"]
