@@ -221,10 +221,10 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 }
 
 func s3get(backet, key string) (*s3.GetObjectOutput, error) {
-    sess, err := session.NewSession(&aws.Config{Region: aws.String(c.awsRegion)})
-    if err != nil {
-        log.Printf("[service] unable to create aws session: %s", err)
-    }
+	sess, err := session.NewSession(&aws.Config{Region: aws.String(c.awsRegion)})
+	if err != nil {
+		log.Printf("[service] unable to create aws session: %s", err)
+	}
 	req := &s3.GetObjectInput{
 		Bucket: aws.String(backet),
 		Key:    aws.String(key),
