@@ -27,6 +27,10 @@ BASIC_AUTH_USER           | Basic 認証をかけるなら、その `ユーザ�
 BASIC_AUTH_PASS           | Basic 認証をかけるなら、その `パスワード`            |        | -
 SSL_CERT_PATH             | TLS を有効にしたいなら、その `cert.pem` へのパス     |        | -
 SSL_KEY_PATH              | TLS を有効にしたいなら、その `key.pem` へのパス      |        | -
+CORS_ALLOW_ORIGIN  | CORS を有効にしたいなら、リソースへのアクセスを許可する URI |        | -
+CORS_ALLOW_METHODS | CORS を有効にしたいなら、許可する [HTTP request methods](https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html)のカンマ区切りのリスト |        | -
+CORS_ALLOW_HEADERS | CORS を有効にしたいなら、サポートするヘッダーのカンマ区切りのリスト |        | -
+CORS_MAX_AGE       | CORS における preflight リクエスト結果のキャッシュ上限時間(秒) |        | 600
 APP_PORT                  | このサービスが待機する `ポート番号`                  |        | 80
 ACCESS_LOG                | 標準出力へアクセスログを送る                        |        | false
 STRIP_PATH                | 指定した Prefix を S3 のパスから削除                |         | -
@@ -42,6 +46,10 @@ STRIP_PATH                | 指定した Prefix を S3 のパスから削除    
 * TLS を有効にしたいなら:  
 
 `docker run -d -p 8080:80 -e AWS_REGION -e AWS_S3_BUCKET -e SSL_CERT_PATH -e SSL_KEY_PATH pottava/s3-proxy`
+
+* CORS を有効にしたいなら:
+
+`docker run -d -p 8080:80 -e PROXY_URL -e CORS_ALLOW_ORIGIN -e CORS_ALLOW_METHODS -e CORS_ALLOW_HEADERS -e CORS_MAX_AGE pottava/s3-proxy`
 
 * docker-compose.yml として使うなら:  
 

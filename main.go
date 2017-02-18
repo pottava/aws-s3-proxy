@@ -31,6 +31,10 @@ type config struct {
 	sslCert          string // SSL_CERT_PATH
 	sslKey           string // SSL_KEY_PATH
 	stripPath        string // STRIP_PATH
+	corsAllowOrigin  string // CORS_ALLOW_ORIGIN
+	corsAllowMethods string // CORS_ALLOW_METHODS
+	corsAllowHeaders string // CORS_ALLOW_HEADERS
+	corsMaxAge       int64  // CORS_MAX_AGE
 }
 
 type symlink struct {
@@ -66,12 +70,6 @@ func main() {
 }
 
 func configFromEnvironmentVariables() *config {
-	if len(os.Getenv("AWS_ACCESS_KEY_ID")) == 0 {
-		log.Print("Not defined environment variable: AWS_ACCESS_KEY_ID")
-	}
-	if len(os.Getenv("AWS_SECRET_ACCESS_KEY")) == 0 {
-		log.Print("Not defined environment variable: AWS_SECRET_ACCESS_KEY")
-	}
 	if len(os.Getenv("AWS_S3_BUCKET")) == 0 {
 		log.Fatal("Missing required environment variable: AWS_S3_BUCKET")
 	}
@@ -87,6 +85,10 @@ func configFromEnvironmentVariables() *config {
 	if b, err := strconv.ParseBool(os.Getenv("ACCESS_LOG")); err == nil {
 		accessLog = b
 	}
+	corsMaxAge := int64(600)
+	if i, err := strconv.ParseInt(os.Getenv("CORS_MAX_AGE"), 10, 64); err == nil {
+		corsMaxAge = i
+	}
 	conf := &config{
 		awsRegion:        region,
 		s3Bucket:         os.Getenv("AWS_S3_BUCKET"),
@@ -100,6 +102,10 @@ func configFromEnvironmentVariables() *config {
 		sslCert:          os.Getenv("SSL_CERT_PATH"),
 		sslKey:           os.Getenv("SSL_KEY_PATH"),
 		stripPath:        os.Getenv("STRIP_PATH"),
+		corsAllowOrigin:  os.Getenv("CORS_ALLOW_ORIGIN"),
+		corsAllowMethods: os.Getenv("CORS_ALLOW_METHODS"),
+		corsAllowHeaders: os.Getenv("CORS_ALLOW_HEADERS"),
+		corsMaxAge:       corsMaxAge,
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", conf.s3Bucket)
@@ -112,6 +118,10 @@ func configFromEnvironmentVariables() *config {
 	// Basic authentication
 	if (len(conf.basicAuthUser) > 0) && (len(conf.basicAuthPass) > 0) {
 		log.Printf("[config] Basic authentication: %s", conf.basicAuthUser)
+	}
+	// CORS
+	if (len(conf.corsAllowOrigin) > 0) && (conf.corsMaxAge > 0) {
+		log.Printf("[config] CORS enabled: %s", conf.corsAllowOrigin)
 	}
 	return conf
 }
@@ -128,6 +138,12 @@ func (r *custom) WriteHeader(status int) {
 
 func wrapper(f func(w http.ResponseWriter, r *http.Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if (len(c.corsAllowOrigin) > 0) && (len(c.corsAllowMethods) > 0) && (len(c.corsAllowHeaders) > 0) && (c.corsMaxAge > 0) {
+			w.Header().Set("Access-Control-Allow-Origin", c.corsAllowOrigin)
+			w.Header().Set("Access-Control-Allow-Methods", c.corsAllowMethods)
+			w.Header().Set("Access-Control-Allow-Headers", c.corsAllowHeaders)
+			w.Header().Set("Access-Control-Max-Age", strconv.FormatInt(c.corsMaxAge, 10))
+		}
 		if (len(c.basicAuthUser) > 0) && (len(c.basicAuthPass) > 0) && !auth(r) {
 			w.Header().Set("WWW-Authenticate", `Basic realm="REALM"`)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)

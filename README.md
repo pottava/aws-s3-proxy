@@ -32,6 +32,10 @@ BASIC_AUTH_USER           | User for basic authentication.                    | 
 BASIC_AUTH_PASS           | Password for basic authentication.                |          | -
 SSL_CERT_PATH             | TLS: cert.pem file path.                          |          | -
 SSL_KEY_PATH              | TLS: key.pem file path.                           |          | -
+CORS_ALLOW_ORIGIN         | CORS: a URI that may access the resource.         |          | -
+CORS_ALLOW_METHODS        | CORS: Comma-delimited list of the allowed [HTTP request methods](https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html). |          | -
+CORS_ALLOW_HEADERS        | CORS: Comma-delimited list of the supported request headers. |          | -
+CORS_MAX_AGE              | CORS: Maximum number of seconds the results of a preflight request can be cached. |          | 600
 APP_PORT                  | The port number to be assigned for listening.     |          | 80
 ACCESS_LOG                | Send access logs to /dev/stdout.                  |          | false
 STRIP_PATH                | Strip path prefix.                                |          | -
@@ -47,6 +51,10 @@ STRIP_PATH                | Strip path prefix.                                | 
 * with TLS:  
 
 `docker run -d -p 8080:80 -e AWS_REGION -e AWS_S3_BUCKET -e SSL_CERT_PATH -e SSL_KEY_PATH pottava/s3-proxy`
+
+* with CORS:
+
+`docker run -d -p 8080:80 -e PROXY_URL -e CORS_ALLOW_ORIGIN -e CORS_ALLOW_METHODS -e CORS_ALLOW_HEADERS -e CORS_MAX_AGE pottava/s3-proxy`
 
 * with docker-compose.yml:  
 

@@ -4,7 +4,7 @@
         {
             "name": "github.com/aws/aws-sdk-go",
             "branch": "master",
-            "revision": "830984cdef47f8ac0d4883012367bf75e5ccac2c",
+            "revision": "e43e7ed87a3584fd820402855e7ff990fb10239f",
             "packages": [
                 "aws",
                 "aws/session",

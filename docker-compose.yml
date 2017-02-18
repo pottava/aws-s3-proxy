@@ -2,7 +2,8 @@ version: "2"
 
 services:
   app:
-    image: pottava/golang:1.8
+    build: dev/
+    image: aws-s3-proxy:dev
     command: go run /go/src/github.com/pottava/aws-s3-proxy/main.go
     ports:
       - 8080:80
@@ -21,5 +22,9 @@ services:
       - BASIC_AUTH_PASS
       - SSL_CERT_PATH
       - SSL_KEY_PATH
+      - CORS_ALLOW_ORIGIN
+      - CORS_ALLOW_METHODS
+      - CORS_ALLOW_HEADERS
+      - CORS_MAX_AGE
       - ACCESS_LOG=true
     container_name: app

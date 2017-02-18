@@ -10,13 +10,13 @@ dependencies:
   pre:
       # Prepare directories.
       - mkdir -p ~/cache "$PRIVATE_GOPATH/src/$IMPORT_PATH"
-      # Install go 1.7
+      # Install go 1.8
       - sudo rm -rf /usr/local/go
-      - cd ~/cache && if [ ! -e go1.7.5.linux-amd64.tar.gz ]; then wget https://storage.googleapis.com/golang/go1.7.5.linux-amd64.tar.gz; fi
-      - cd ~/cache && sudo tar -C /usr/local -xzf go1.7.5.linux-amd64.tar.gz
+      - cd ~/cache && if [ ! -e go1.8.linux-amd64.tar.gz ]; then wget https://storage.googleapis.com/golang/go1.8.linux-amd64.tar.gz; fi
+      - cd ~/cache && sudo tar -C /usr/local -xzf go1.8.linux-amd64.tar.gz
       - go version
       # Install test utils
-      - go get github.com/golang/dep
+      - go get github.com/golang/dep/...
       - go get github.com/golang/lint/golint
   post:
     - >

@@ -1,4 +1,4 @@
-# BUILD_VERSION=v0.1.0 BUILD_DATE=`date +%FT%T%z` docker-compose -f development/docker-compose-gox.yml run --rm build
+# BUILD_VERSION=v0.1.0 BUILD_DATE=`date +%FT%T%z` docker-compose -f dev/docker-compose-gox.yml run --rm build
 
 build:
   image: pottava/gox:go1.8

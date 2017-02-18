@@ -12,9 +12,9 @@ RUN apk add --no-cache ca-certificates
 RUN apk --no-cache add --virtual build-dependencies bash gcc musl-dev openssl go git \
 
     # Install go 1.8
-    && GOLANG_VERSION=1.8rc3 \
+    && GOLANG_VERSION=1.8 \
     && GOLANG_SRC_URL=https://golang.org/dl/go$GOLANG_VERSION.src.tar.gz \
-    && GOLANG_SRC_SHA256=38b1c1738f111f7bccdd372efca2aa98a7bad1ca2cb21767ba69f34ae007499c \
+    && GOLANG_SRC_SHA256=406865f587b44be7092f206d73fc1de252600b79b3cacc587b74b5ef5c623596 \
     && export GOROOT_BOOTSTRAP="$(go env GOROOT)" \
     && wget -q "$GOLANG_SRC_URL" -O golang.tar.gz \
     && echo "$GOLANG_SRC_SHA256  golang.tar.gz" | sha256sum -c - \
@@ -32,7 +32,7 @@ RUN apk --no-cache add --virtual build-dependencies bash gcc musl-dev openssl go
     && mv /go/bin/aws-s3-proxy /usr/bin \
 
     # Clean up
-    && apk del --purge build-dependencies \
+    && apk del --purge -r build-dependencies \
     && rm -rf /usr/local/go /usr/lib/go /go /golang.tar.gz /*.patch
 
 EXPOSE 80
