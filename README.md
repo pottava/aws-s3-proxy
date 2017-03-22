@@ -39,6 +39,7 @@ CORS_MAX_AGE              | CORS: Maximum number of seconds the results of a pre
 APP_PORT                  | The port number to be assigned for listening.     |          | 80
 ACCESS_LOG                | Send access logs to /dev/stdout.                  |          | false
 STRIP_PATH                | Strip path prefix.                                |          | -
+CONTENT_ENCODING          | Compress response data if the request allows.     |          | false
 
 ### 2. Run the application
 

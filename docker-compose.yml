@@ -27,4 +27,5 @@ services:
       - CORS_ALLOW_HEADERS
       - CORS_MAX_AGE
       - ACCESS_LOG=true
+      - CONTENT_ENCODING
     container_name: app

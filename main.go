@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
+	"compress/zlib"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,6 +33,7 @@ type config struct {
 	sslCert          string // SSL_CERT_PATH
 	sslKey           string // SSL_KEY_PATH
 	stripPath        string // STRIP_PATH
+	contentEncoding  bool   // CONTENT_ENCODING
 	corsAllowOrigin  string // CORS_ALLOW_ORIGIN
 	corsAllowMethods string // CORS_ALLOW_METHODS
 	corsAllowHeaders string // CORS_ALLOW_HEADERS
@@ -70,6 +73,12 @@ func main() {
 }
 
 func configFromEnvironmentVariables() *config {
+	if len(os.Getenv("AWS_ACCESS_KEY_ID")) == 0 {
+		log.Print("Not defined environment variable: AWS_ACCESS_KEY_ID")
+	}
+	if len(os.Getenv("AWS_SECRET_ACCESS_KEY")) == 0 {
+		log.Print("Not defined environment variable: AWS_SECRET_ACCESS_KEY")
+	}
 	if len(os.Getenv("AWS_S3_BUCKET")) == 0 {
 		log.Fatal("Missing required environment variable: AWS_S3_BUCKET")
 	}
@@ -84,6 +93,10 @@ func configFromEnvironmentVariables() *config {
 	accessLog := false
 	if b, err := strconv.ParseBool(os.Getenv("ACCESS_LOG")); err == nil {
 		accessLog = b
+	}
+	contentEncoging := false
+	if b, err := strconv.ParseBool(os.Getenv("CONTENT_ENCODING")); err == nil {
+		contentEncoging = b
 	}
 	corsMaxAge := int64(600)
 	if i, err := strconv.ParseInt(os.Getenv("CORS_MAX_AGE"), 10, 64); err == nil {
@@ -102,6 +115,7 @@ func configFromEnvironmentVariables() *config {
 		sslCert:          os.Getenv("SSL_CERT_PATH"),
 		sslKey:           os.Getenv("SSL_KEY_PATH"),
 		stripPath:        os.Getenv("STRIP_PATH"),
+		contentEncoding:  contentEncoging,
 		corsAllowOrigin:  os.Getenv("CORS_ALLOW_ORIGIN"),
 		corsAllowMethods: os.Getenv("CORS_ALLOW_METHODS"),
 		corsAllowHeaders: os.Getenv("CORS_ALLOW_HEADERS"),
@@ -127,8 +141,16 @@ func configFromEnvironmentVariables() *config {
 }
 
 type custom struct {
+	io.Writer
 	http.ResponseWriter
 	status int
+}
+
+func (r *custom) Write(b []byte) (int, error) {
+	if r.Header().Get("Content-Type") == "" {
+		r.Header().Set("Content-Type", http.DetectContentType(b))
+	}
+	return r.Writer.Write(b)
 }
 
 func (r *custom) WriteHeader(status int) {
@@ -154,7 +176,26 @@ func wrapper(f func(w http.ResponseWriter, r *http.Request)) http.Handler {
 		if ip, found := header(r, "X-Forwarded-For"); found {
 			addr = ip
 		}
-		writer := &custom{ResponseWriter: w, status: http.StatusOK}
+		ioWriter := w.(io.Writer)
+		if encodings, found := header(r, "Accept-Encoding"); found && c.contentEncoding {
+			for _, encoding := range splitCsvLine(encodings) {
+				if encoding == "gzip" {
+					w.Header().Set("Content-Encoding", "gzip")
+					g := gzip.NewWriter(w)
+					defer g.Close()
+					ioWriter = g
+					break
+				}
+				if encoding == "deflate" {
+					w.Header().Set("Content-Encoding", "deflate")
+					z := zlib.NewWriter(w)
+					defer z.Close()
+					ioWriter = z
+					break
+				}
+			}
+		}
+		writer := &custom{Writer: ioWriter, ResponseWriter: w, status: http.StatusOK}
 		f(writer, r)
 
 		if c.accessLog {
@@ -181,6 +222,15 @@ func header(r *http.Request, key string) (string, bool) {
 		return candidate[0], true
 	}
 	return "", false
+}
+
+func splitCsvLine(data string) []string {
+	splitted := strings.SplitN(data, ",", -1)
+	parsed := make([]string, len(splitted))
+	for i, val := range splitted {
+		parsed[i] = strings.TrimSpace(val)
+	}
+	return parsed
 }
 
 func awss3(w http.ResponseWriter, r *http.Request) {
