@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
@@ -262,7 +263,13 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 	}
 	obj, err := s3get(c.s3Bucket, c.s3KeyPrefix+path)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// Cast err to awserr.Error to handle specific error codes.
+		aerr, ok := err.(awserr.Error)
+		if ok && aerr.Code() == "NoSuchKey" {
+			http.Error(w, "Not found "+c.s3KeyPrefix+path, http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 	if len(c.httpCacheControl) > 0 {
