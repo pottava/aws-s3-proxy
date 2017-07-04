@@ -23,6 +23,7 @@ import (
 
 type config struct {
 	awsRegion        string // AWS_REGION
+	awsAPIEndpoint   string // AWS_API_ENDPOINT
 	s3Bucket         string // AWS_S3_BUCKET
 	s3KeyPrefix      string // AWS_S3_KEY_PREFIX
 	indexDocument    string // INDEX_DOCUMENT
@@ -89,6 +90,10 @@ func configFromEnvironmentVariables() *config {
 	if len(region) == 0 {
 		region = "us-east-1"
 	}
+	endpoint := os.Getenv("AWS_API_ENDPOINT")
+	if len(endpoint) == 0 {
+		endpoint = ""
+	}
 	port := os.Getenv("APP_PORT")
 	if len(port) == 0 {
 		port = "80"
@@ -115,6 +120,7 @@ func configFromEnvironmentVariables() *config {
 	}
 	conf := &config{
 		awsRegion:        region,
+		awsAPIEndpoint:   endpoint,
 		s3Bucket:         os.Getenv("AWS_S3_BUCKET"),
 		s3KeyPrefix:      os.Getenv("AWS_S3_KEY_PREFIX"),
 		indexDocument:    indexDocument,
@@ -305,9 +311,8 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 }
 
 func s3get(backet, key string) (*s3.GetObjectOutput, error) {
-	sess, err := session.NewSession(&aws.Config{Region: aws.String(c.awsRegion)})
+	sess, err := awsSession()
 	if err != nil {
-		log.Printf("[service] unable to create aws session: %s", err)
 		return nil, err
 	}
 	req := &s3.GetObjectInput{
@@ -318,9 +323,8 @@ func s3get(backet, key string) (*s3.GetObjectOutput, error) {
 }
 
 func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
-	sess, serr := session.NewSession(&aws.Config{Region: aws.String(c.awsRegion)})
+	sess, serr := awsSession()
 	if serr != nil {
-		log.Printf("[service] unable to create aws session: %s", serr)
 		http.Error(w, serr.Error(), http.StatusInternalServerError)
 	}
 	if strings.HasSuffix(key, "/") {
@@ -346,6 +350,21 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 		return
 	}
 	http.Error(w, string(bytes), http.StatusOK)
+}
+
+func awsSession() (*session.Session, error) {
+	config := &aws.Config{
+		Region: aws.String(c.awsRegion),
+	}
+	if len(c.awsAPIEndpoint) > 0 {
+		config.Endpoint = aws.String(c.awsAPIEndpoint)
+	}
+	sess, err := session.NewSession(config)
+	if err != nil {
+		log.Printf("[service] unable to create aws session: %s", err)
+		return nil, err
+	}
+	return sess, nil
 }
 
 func setStrHeader(w http.ResponseWriter, key string, value *string) {

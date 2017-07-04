@@ -26,6 +26,7 @@ AWS_S3_KEY_PREFIX         | You can configure `S3 object key` prefix.         | 
 AWS_REGION                | The AWS `region` where the S3 bucket exists.      |          | us-east-1
 AWS_ACCESS_KEY_ID         | AWS `access key` for API access.                  |          | EC2 Instance Role
 AWS_SECRET_ACCESS_KEY     | AWS `secret key` for API access.                  |          | EC2 Instance Role
+AWS_API_ENDPOINT          | The endpoint for AWS API for local development.   |          | -
 INDEX_DOCUMENT            | Name of your index document.                      |          | index.html
 DIRECTORY_LISTINGS        | List files when a specified URL ends with /.      |          | false
 HTTP_CACHE_CONTROL        | Overrides S3's HTTP `Cache-Control` header.       |          | S3 Object metadata
