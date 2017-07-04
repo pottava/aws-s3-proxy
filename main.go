@@ -244,7 +244,8 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 	if idx > -1 {
 		result, err := s3get(c.s3Bucket, c.s3KeyPrefix+path[:idx+12])
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			code, message := awsError(err)
+			http.Error(w, message, code)
 			return
 		}
 		var link symlink
@@ -263,13 +264,8 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 	}
 	obj, err := s3get(c.s3Bucket, c.s3KeyPrefix+path)
 	if err != nil {
-		// Cast err to awserr.Error to handle specific error codes.
-		aerr, ok := err.(awserr.Error)
-		if ok && aerr.Code() == "NoSuchKey" {
-			http.Error(w, "Not found "+c.s3KeyPrefix+path, http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		code, message := awsError(err)
+		http.Error(w, message, code)
 		return
 	}
 	if len(c.httpCacheControl) > 0 {
@@ -321,4 +317,15 @@ func setTimeHeader(w http.ResponseWriter, key string, value *time.Time) {
 	if value != nil && !reflect.DeepEqual(*value, time.Time{}) {
 		w.Header().Add(key, value.UTC().Format(http.TimeFormat))
 	}
+}
+
+func awsError(err error) (int, string) {
+	if aerr, ok := err.(awserr.Error); ok {
+		switch aerr.Code() {
+		case s3.ErrCodeNoSuchBucket, s3.ErrCodeNoSuchKey:
+			return http.StatusNotFound, aerr.Error()
+		}
+		return http.StatusInternalServerError, aerr.Error()
+	}
+	return http.StatusInternalServerError, err.Error()
 }
