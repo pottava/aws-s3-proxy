@@ -16,7 +16,7 @@ dependencies:
       - cd ~/cache && sudo tar -C /usr/local -xzf go1.8.linux-amd64.tar.gz
       - go version
       # Install test utils
-      - go get github.com/golang/dep/...
+      - go get -u github.com/golang/dep/...
       - go get github.com/golang/lint/golint
   post:
     - >
