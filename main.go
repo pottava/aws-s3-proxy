@@ -319,8 +319,8 @@ func s3get(backet, key string) (*s3.GetObjectOutput, error) {
 }
 
 func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
-	if strings.HasSuffix(key, "/") {
-		key = key[:len(key)-1]
+	if strings.HasPrefix(key, "/") {
+		key = key[1:]
 	}
 	req := &s3.ListObjectsInput{
 		Bucket: aws.String(backet),
@@ -334,7 +334,14 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 	}
 	files := []string{}
 	for _, obj := range result.Contents {
-		files = append(files, strings.Replace(aws.StringValue(obj.Key), key, "", -1))
+		candidate := strings.Replace(aws.StringValue(obj.Key), key, "", -1)
+		if len(candidate) == 0 {
+			continue
+		}
+		if strings.Contains(candidate, "/") {
+			continue
+		}
+		files = append(files, candidate)
 	}
 	bytes, merr := json.Marshal(files)
 	if merr != nil {
