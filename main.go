@@ -311,22 +311,14 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 }
 
 func s3get(backet, key string) (*s3.GetObjectOutput, error) {
-	sess, err := awsSession()
-	if err != nil {
-		return nil, err
-	}
 	req := &s3.GetObjectInput{
 		Bucket: aws.String(backet),
 		Key:    aws.String(key),
 	}
-	return s3.New(sess).GetObject(req)
+	return s3.New(awsSession()).GetObject(req)
 }
 
 func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
-	sess, serr := awsSession()
-	if serr != nil {
-		http.Error(w, serr.Error(), http.StatusInternalServerError)
-	}
 	if strings.HasSuffix(key, "/") {
 		key = key[:len(key)-1]
 	}
@@ -334,7 +326,7 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 		Bucket: aws.String(backet),
 		Prefix: aws.String(key),
 	}
-	result, err := s3.New(sess).ListObjects(req)
+	result, err := s3.New(awsSession()).ListObjects(req)
 	if err != nil {
 		code, message := awsError(err)
 		http.Error(w, message, code)
@@ -352,19 +344,15 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 	http.Error(w, string(bytes), http.StatusOK)
 }
 
-func awsSession() (*session.Session, error) {
+func awsSession() *session.Session {
 	config := &aws.Config{
 		Region: aws.String(c.awsRegion),
 	}
 	if len(c.awsAPIEndpoint) > 0 {
 		config.Endpoint = aws.String(c.awsAPIEndpoint)
+		config.S3ForcePathStyle = aws.Bool(true)
 	}
-	sess, err := session.NewSession(config)
-	if err != nil {
-		log.Printf("[service] unable to create aws session: %s", err)
-		return nil, err
-	}
-	return sess, nil
+	return session.Must(session.NewSession(config))
 }
 
 func setStrHeader(w http.ResponseWriter, key string, value *string) {
