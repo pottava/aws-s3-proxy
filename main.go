@@ -25,6 +25,8 @@ type config struct {
 	awsRegion        string // AWS_REGION
 	s3Bucket         string // AWS_S3_BUCKET
 	s3KeyPrefix      string // AWS_S3_KEY_PREFIX
+	indexDocument    string // INDEX_DOCUMENT
+	directoryListing bool   // DIRECTORY_LISTINGS
 	httpCacheControl string // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
 	httpExpires      string // HTTP_EXPIRES (Thu, 01 Dec 1994 16:00:00 GMT ...)
 	basicAuthUser    string // BASIC_AUTH_USER
@@ -91,6 +93,14 @@ func configFromEnvironmentVariables() *config {
 	if len(port) == 0 {
 		port = "80"
 	}
+	indexDocument := os.Getenv("INDEX_DOCUMENT")
+	if len(indexDocument) == 0 {
+		indexDocument = "index.html"
+	}
+	directoryListings := false
+	if b, err := strconv.ParseBool(os.Getenv("DIRECTORY_LISTINGS")); err == nil {
+		directoryListings = b
+	}
 	accessLog := false
 	if b, err := strconv.ParseBool(os.Getenv("ACCESS_LOG")); err == nil {
 		accessLog = b
@@ -107,6 +117,8 @@ func configFromEnvironmentVariables() *config {
 		awsRegion:        region,
 		s3Bucket:         os.Getenv("AWS_S3_BUCKET"),
 		s3KeyPrefix:      os.Getenv("AWS_S3_KEY_PREFIX"),
+		indexDocument:    indexDocument,
+		directoryListing: directoryListings,
 		httpCacheControl: os.Getenv("HTTP_CACHE_CONTROL"),
 		httpExpires:      os.Getenv("HTTP_EXPIRES"),
 		basicAuthUser:    os.Getenv("BASIC_AUTH_USER"),
@@ -258,9 +270,12 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 		}
 		path = link.URL + path[idx+12:]
 	}
-
 	if strings.HasSuffix(path, "/") {
-		path += "index.html"
+		if c.directoryListing {
+			s3listFiles(w, r, c.s3Bucket, c.s3KeyPrefix+path)
+			return
+		}
+		path += c.indexDocument
 	}
 	obj, err := s3get(c.s3Bucket, c.s3KeyPrefix+path)
 	if err != nil {
@@ -293,12 +308,44 @@ func s3get(backet, key string) (*s3.GetObjectOutput, error) {
 	sess, err := session.NewSession(&aws.Config{Region: aws.String(c.awsRegion)})
 	if err != nil {
 		log.Printf("[service] unable to create aws session: %s", err)
+		return nil, err
 	}
 	req := &s3.GetObjectInput{
 		Bucket: aws.String(backet),
 		Key:    aws.String(key),
 	}
 	return s3.New(sess).GetObject(req)
+}
+
+func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
+	sess, serr := session.NewSession(&aws.Config{Region: aws.String(c.awsRegion)})
+	if serr != nil {
+		log.Printf("[service] unable to create aws session: %s", serr)
+		http.Error(w, serr.Error(), http.StatusInternalServerError)
+	}
+	if strings.HasSuffix(key, "/") {
+		key = key[:len(key)-1]
+	}
+	req := &s3.ListObjectsInput{
+		Bucket: aws.String(backet),
+		Prefix: aws.String(key),
+	}
+	result, err := s3.New(sess).ListObjects(req)
+	if err != nil {
+		code, message := awsError(err)
+		http.Error(w, message, code)
+		return
+	}
+	files := []string{}
+	for _, obj := range result.Contents {
+		files = append(files, strings.Replace(aws.StringValue(obj.Key), key, "", -1))
+	}
+	bytes, merr := json.Marshal(files)
+	if merr != nil {
+		http.Error(w, merr.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Error(w, string(bytes), http.StatusOK)
 }
 
 func setStrHeader(w http.ResponseWriter, key string, value *string) {

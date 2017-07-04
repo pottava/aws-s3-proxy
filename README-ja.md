@@ -21,6 +21,8 @@ AWS_S3_KEY_PREFIX         | S3 オブジェクトにプリフィクス文字列�
 AWS_REGION                | バケットの存在する AWS リージョン                    |        | us-east-1
 AWS_ACCESS_KEY_ID         | API を使うための AWS アクセスキー                   |        | EC2 インスタンスロール
 AWS_SECRET_ACCESS_KEY     | API を使うための AWS シークレットキー                |        | EC2 インスタンスロール
+INDEX_DOCUMENT            | インデックスドキュメントの名前                       |          | index.html
+DIRECTORY_LISTINGS        | / で終わる URL の場合、ファイル一覧を返す             |          | false
 HTTP_CACHE_CONTROL        | S3 の `Cache-Control` 属性を上書きして返します      |        | S3 オブジェクト属性値
 HTTP_EXPIRES              | S3 の `Expires` 属性を上書きして返します            |        | S3 オブジェクト属性値
 BASIC_AUTH_USER           | Basic 認証をかけるなら、その `ユーザ名`              |        | -
