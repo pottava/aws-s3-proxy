@@ -1,7 +1,0 @@
-{
-    "dependencies": {
-        "github.com/aws/aws-sdk-go": {
-            "branch": "master"
-        }
-    }
-}
