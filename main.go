@@ -11,9 +11,11 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -332,23 +334,31 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 		http.Error(w, message, code)
 		return
 	}
-	files := []string{}
+	candidates := map[string]bool{}
 	for _, obj := range result.Contents {
 		candidate := strings.Replace(aws.StringValue(obj.Key), key, "", -1)
 		if len(candidate) == 0 {
 			continue
 		}
 		if strings.Contains(candidate, "/") {
+			candidates[candidate[0:strings.Index(candidate, "/")]+"/"] = true
 			continue
 		}
-		files = append(files, candidate)
+		candidates[candidate] = true
 	}
+	files := []string{}
+	for file := range candidates {
+		files = append(files, file)
+	}
+	sort.Sort(objects(files))
+
 	bytes, merr := json.Marshal(files)
 	if merr != nil {
 		http.Error(w, merr.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Error(w, string(bytes), http.StatusOK)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	fmt.Fprintln(w, string(bytes))
 }
 
 func awsSession() *session.Session {
@@ -389,4 +399,45 @@ func awsError(err error) (int, string) {
 		return http.StatusInternalServerError, aerr.Error()
 	}
 	return http.StatusInternalServerError, err.Error()
+}
+
+type objects []string
+
+func (s objects) Len() int {
+	return len(s)
+}
+func (s objects) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s objects) Less(i, j int) bool {
+	if strings.Contains(s[i], "/") {
+		if !strings.Contains(s[j], "/") {
+			return true
+		}
+	} else {
+		if strings.Contains(s[j], "/") {
+			return false
+		}
+	}
+	irs := []rune(s[i])
+	jrs := []rune(s[j])
+
+	max := len(irs)
+	if max > len(jrs) {
+		max = len(jrs)
+	}
+	for idx := 0; idx < max; idx++ {
+		ir := irs[idx]
+		jr := jrs[idx]
+		irl := unicode.ToLower(ir)
+		jrl := unicode.ToLower(jr)
+
+		if irl != jrl {
+			return irl < jrl
+		}
+		if ir != jr {
+			return ir < jr
+		}
+	}
+	return false
 }
