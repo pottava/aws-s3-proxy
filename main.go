@@ -30,6 +30,7 @@ type config struct {
 	s3KeyPrefix      string // AWS_S3_KEY_PREFIX
 	indexDocument    string // INDEX_DOCUMENT
 	directoryListing bool   // DIRECTORY_LISTINGS
+	dirListingFormat string // DIRECTORY_LISTINGS_FORMAT
 	httpCacheControl string // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
 	httpExpires      string // HTTP_EXPIRES (Thu, 01 Dec 1994 16:00:00 GMT ...)
 	basicAuthUser    string // BASIC_AUTH_USER
@@ -63,7 +64,7 @@ func main() {
 
 	http.HandleFunc("/--version", func(w http.ResponseWriter, r *http.Request) {
 		if len(version) > 0 && len(date) > 0 {
-			fmt.Fprintf(w, "version: %s (built at %s)", version, date)
+			fmt.Fprintf(w, "version: %s (built at %s)\n", version, date)
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}
@@ -127,6 +128,7 @@ func configFromEnvironmentVariables() *config {
 		s3KeyPrefix:      os.Getenv("AWS_S3_KEY_PREFIX"),
 		indexDocument:    indexDocument,
 		directoryListing: directoryListings,
+		dirListingFormat: os.Getenv("DIRECTORY_LISTINGS_FORMAT"),
 		httpCacheControl: os.Getenv("HTTP_CACHE_CONTROL"),
 		httpExpires:      os.Getenv("HTTP_EXPIRES"),
 		basicAuthUser:    os.Getenv("BASIC_AUTH_USER"),
@@ -352,6 +354,16 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 	}
 	sort.Sort(objects(files))
 
+	if strings.ToLower(c.dirListingFormat) == "html" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		html := "<!DOCTYPE html><html><body><ul>"
+		for _, file := range files {
+			html += "<li><a href=\"" + file + "\">" + file + "</a></li>"
+		}
+		html += "</ul></body></html>"
+		fmt.Fprintln(w, html)
+		return
+	}
 	bytes, merr := json.Marshal(files)
 	if merr != nil {
 		http.Error(w, merr.Error(), http.StatusInternalServerError)
