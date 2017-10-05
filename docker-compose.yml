@@ -31,4 +31,5 @@ services:
       - CORS_MAX_AGE
       - ACCESS_LOG=true
       - CONTENT_ENCODING
+      - HEALTHCHECK_PATH
     container_name: app

@@ -45,6 +45,7 @@ type config struct {
 	corsAllowMethods string // CORS_ALLOW_METHODS
 	corsAllowHeaders string // CORS_ALLOW_HEADERS
 	corsMaxAge       int64  // CORS_MAX_AGE
+	healthCheckPath  string // HEALTHCHECK_PATH
 }
 
 type symlink struct {
@@ -69,6 +70,12 @@ func main() {
 			w.WriteHeader(http.StatusOK)
 		}
 	})
+
+	if c.healthCheckPath != "" {
+		http.HandleFunc(c.healthCheckPath, func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+	}
 
 	// Listen & Serve
 	log.Printf("[service] listening on port %s", c.port)
@@ -143,6 +150,7 @@ func configFromEnvironmentVariables() *config {
 		corsAllowMethods: os.Getenv("CORS_ALLOW_METHODS"),
 		corsAllowHeaders: os.Getenv("CORS_ALLOW_HEADERS"),
 		corsMaxAge:       corsMaxAge,
+		healthCheckPath:  os.Getenv("HEALTHCHECK_PATH"),
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", conf.s3Bucket)

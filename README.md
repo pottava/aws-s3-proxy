@@ -3,7 +3,9 @@
 ![circleci status](https://circleci.com/gh/pottava/aws-s3-proxy.svg?style=shield&circle-token=9bc17d02e4513df42196523a1791465e65d8ab01) 
 
 Supported tags and respective `Dockerfile` links:  
-・latest ([prod/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/Dockerfile))
+・latest ([prod/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/Dockerfile))  
+・1.1 ([prod/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/Dockerfile))  
+・1 ([prod/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/Dockerfile))  
 
 ## Description
 
@@ -43,6 +45,7 @@ APP_PORT                  | The port number to be assigned for listening.     | 
 ACCESS_LOG                | Send access logs to /dev/stdout.                  |          | false
 STRIP_PATH                | Strip path prefix.                                |          | -
 CONTENT_ENCODING          | Compress response data if the request allows.     |          | false
+HEALTHCHECK_PATH          | If it's specified, the path always returns 200 OK |          | -
 
 ### 2. Run the application
 
