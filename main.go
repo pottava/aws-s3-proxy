@@ -266,7 +266,7 @@ func splitCsvLine(data string) []string {
 
 func awss3(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
-    rangeHeader := r.Header.Get("Range")
+        rangeHeader := r.Header.Get("Range")
 
 	if len(c.stripPath) > 0 {
 		path = strings.Replace(path, c.stripPath, "", 1)
