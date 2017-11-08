@@ -266,7 +266,7 @@ func splitCsvLine(data string) []string {
 
 func awss3(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
-        rangeHeader := r.Header.Get("Range")
+    rangeHeader := r.Header.Get("Range")
 
 	if len(c.stripPath) > 0 {
 		path = strings.Replace(path, c.stripPath, "", 1)
@@ -329,10 +329,17 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 }
 
 func s3get(backet, key, rangeHeader string) (*s3.GetObjectOutput, error) {
+	var rangeHeaderAwsString *string = nil
+
+	if len(rangeHeader) > 0 {
+		rangeHeaderAwsString = aws.String(rangeHeader)
+	}
+
+
 	req := &s3.GetObjectInput{
 		Bucket: aws.String(backet),
 		Key:    aws.String(key),
-		Range:  aws.String(rangeHeader),
+		Range:  rangeHeaderAwsString,
 	}
 	return s3.New(awsSession()).GetObject(req)
 }
