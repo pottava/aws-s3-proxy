@@ -266,13 +266,14 @@ func splitCsvLine(data string) []string {
 
 func awss3(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
+	rangeHeader := r.Header.Get("Range")
 
 	if len(c.stripPath) > 0 {
 		path = strings.Replace(path, c.stripPath, "", 1)
 	}
 	idx := strings.Index(path, "symlink.json")
 	if idx > -1 {
-		result, err := s3get(c.s3Bucket, c.s3KeyPrefix+path[:idx+12])
+		result, err := s3get(c.s3Bucket, c.s3KeyPrefix+path[:idx+12], rangeHeader)
 		if err != nil {
 			code, message := awsError(err)
 			http.Error(w, message, code)
@@ -295,7 +296,7 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 		}
 		path += c.indexDocument
 	}
-	obj, err := s3get(c.s3Bucket, c.s3KeyPrefix+path)
+	obj, err := s3get(c.s3Bucket, c.s3KeyPrefix+path, rangeHeader)
 	if err != nil {
 		code, message := awsError(err)
 		http.Error(w, message, code)
@@ -317,15 +318,27 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 	setIntHeader(w, "Content-Length", obj.ContentLength)
 	setStrHeader(w, "Content-Range", obj.ContentRange)
 	setStrHeader(w, "Content-Type", obj.ContentType)
+	setStrHeader(w, "ETag", obj.ETag)
 	setTimeHeader(w, "Last-Modified", obj.LastModified)
+
+	if obj.ContentRange != nil && len(*obj.ContentRange) > 0 {
+		w.WriteHeader(http.StatusPartialContent)
+	}
 
 	io.Copy(w, obj.Body)
 }
 
-func s3get(backet, key string) (*s3.GetObjectOutput, error) {
+func s3get(backet, key, rangeHeader string) (*s3.GetObjectOutput, error) {
+	var rangeHeaderAwsString *string
+
+	if len(rangeHeader) > 0 {
+		rangeHeaderAwsString = aws.String(rangeHeader)
+	}
+
 	req := &s3.GetObjectInput{
 		Bucket: aws.String(backet),
 		Key:    aws.String(key),
+		Range:  rangeHeaderAwsString,
 	}
 	return s3.New(awsSession()).GetObject(req)
 }
