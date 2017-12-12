@@ -302,16 +302,27 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, message, code)
 		return
 	}
+	setHeadersFromAwsResponse(w, obj)
+
+	io.Copy(w, obj.Body)
+}
+
+func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput) {
+
+	// Cache-Control
 	if len(c.httpCacheControl) > 0 {
 		setStrHeader(w, "Cache-Control", &c.httpCacheControl)
 	} else {
 		setStrHeader(w, "Cache-Control", obj.CacheControl)
 	}
+
+	// Expires
 	if len(c.httpExpires) > 0 {
 		setStrHeader(w, "Expires", &c.httpExpires)
 	} else {
 		setStrHeader(w, "Expires", obj.Expires)
 	}
+
 	setStrHeader(w, "Content-Disposition", obj.ContentDisposition)
 	setStrHeader(w, "Content-Encoding", obj.ContentEncoding)
 	setStrHeader(w, "Content-Language", obj.ContentLanguage)
@@ -321,11 +332,46 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 	setStrHeader(w, "ETag", obj.ETag)
 	setTimeHeader(w, "Last-Modified", obj.LastModified)
 
-	if obj.ContentRange != nil && len(*obj.ContentRange) > 0 {
-		w.WriteHeader(http.StatusPartialContent)
-	}
+	httpStatus := determineHttpStatus(obj)
 
-	io.Copy(w, obj.Body)
+	w.WriteHeader(httpStatus)
+}
+
+func determineHttpStatus(obj *s3.GetObjectOutput) int {
+
+	httpStatus := http.StatusOK
+
+	contentRangeIsGiven := obj.ContentRange != nil && len(*obj.ContentRange) > 0
+
+	if contentRangeIsGiven {
+		httpStatus = http.StatusPartialContent
+
+		if totalFileSizeEqualToContentRange(obj) {
+			httpStatus = http.StatusOK
+		}
+
+	}
+	return httpStatus
+}
+
+func totalFileSizeEqualToContentRange(obj *s3.GetObjectOutput) bool {
+	totalSizeIsEqualToContentRange := false
+	if totalSize, err := strconv.ParseInt(getFileSizeAsString(obj), 10, 64); err == nil {
+		if totalSize == (*obj.ContentLength) {
+			totalSizeIsEqualToContentRange = true
+		}
+	}
+	return totalSizeIsEqualToContentRange
+}
+
+/**
+See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Range
+*/
+func getFileSizeAsString(obj *s3.GetObjectOutput) string {
+	s := strings.Split(*obj.ContentRange, "/")
+	totalSizeString := s[1]
+	totalSizeString = strings.TrimSpace(totalSizeString)
+	return totalSizeString
 }
 
 func s3get(backet, key, rangeHeader string) (*s3.GetObjectOutput, error) {
