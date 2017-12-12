@@ -35,7 +35,7 @@ type config struct {
 	httpExpires      string // HTTP_EXPIRES (Thu, 01 Dec 1994 16:00:00 GMT ...)
 	basicAuthUser    string // BASIC_AUTH_USER
 	basicAuthPass    string // BASIC_AUTH_PASS
-	port             string // APP_PORT
+	port             string // PORT
 	accessLog        bool   // ACCESS_LOG
 	sslCert          string // SSL_CERT_PATH
 	sslKey           string // SSL_KEY_PATH
@@ -104,7 +104,7 @@ func configFromEnvironmentVariables() *config {
 	if len(endpoint) == 0 {
 		endpoint = ""
 	}
-	port := os.Getenv("APP_PORT")
+	port := os.Getenv("PORT")
 	if len(port) == 0 {
 		port = "80"
 	}
