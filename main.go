@@ -46,6 +46,7 @@ type config struct {
 	corsAllowHeaders string // CORS_ALLOW_HEADERS
 	corsMaxAge       int64  // CORS_MAX_AGE
 	healthCheckPath  string // HEALTHCHECK_PATH
+	allPagesInDir    bool   // GET_ALL_PAGES_IN_DIR
 }
 
 type symlink struct {
@@ -128,6 +129,10 @@ func configFromEnvironmentVariables() *config {
 	if i, err := strconv.ParseInt(os.Getenv("CORS_MAX_AGE"), 10, 64); err == nil {
 		corsMaxAge = i
 	}
+	allPagesInDir := false
+	if b, err := strconv.ParseBool(os.Getenv("GET_ALL_PAGES_IN_DIR")); err == nil {
+		allPagesInDir = b
+	}
 	conf := &config{
 		awsRegion:        region,
 		awsAPIEndpoint:   endpoint,
@@ -151,6 +156,7 @@ func configFromEnvironmentVariables() *config {
 		corsAllowHeaders: os.Getenv("CORS_ALLOW_HEADERS"),
 		corsMaxAge:       corsMaxAge,
 		healthCheckPath:  os.Getenv("HEALTHCHECK_PATH"),
+		allPagesInDir:    allPagesInDir,
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", conf.s3Bucket)
@@ -343,6 +349,29 @@ func s3get(backet, key, rangeHeader string) (*s3.GetObjectOutput, error) {
 	return s3.New(awsSession()).GetObject(req)
 }
 
+func getObjsFromS3(req *s3.ListObjectsInput, key string) (*s3.ListObjectsOutput, error) {
+	var result *s3.ListObjectsOutput
+	var err error
+
+	if c.allPagesInDir {
+		result = &s3.ListObjectsOutput{
+			CommonPrefixes: []*s3.CommonPrefix{},
+			Contents:       []*s3.Object{},
+			Prefix:         aws.String(key),
+		}
+
+		err = s3.New(awsSession()).ListObjectsPages(req,
+			func(page *s3.ListObjectsOutput, lastPage bool) bool {
+				result.CommonPrefixes = append(result.CommonPrefixes, page.CommonPrefixes...)
+				result.Contents = append(result.Contents, page.Contents...)
+				return len(page.CommonPrefixes) == 1000
+			})
+	} else {
+		result, err = s3.New(awsSession()).ListObjects(req)
+	}
+	return result, err
+}
+
 func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 	if strings.HasPrefix(key, "/") {
 		key = key[1:]
@@ -352,19 +381,23 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 		Prefix:    aws.String(key),
 		Delimiter: aws.String("/"),
 	}
-	result, err := s3.New(awsSession()).ListObjects(req)
+
+	result, err := getObjsFromS3(req, key)
+
 	if err != nil {
 		code, message := awsError(err)
 		http.Error(w, message, code)
 		return
 	}
 	candidates := map[string]bool{}
+	updatedAt := map[string]time.Time{}
 	for _, obj := range result.Contents {
 		candidate := strings.Replace(aws.StringValue(obj.Key), key, "", -1)
 		if len(candidate) == 0 {
 			continue
 		}
 		candidates[candidate] = true
+		updatedAt[candidate] = *obj.LastModified
 	}
 	for _, obj := range result.CommonPrefixes {
 		candidate := strings.Replace(aws.StringValue(obj.Prefix), key, "", -1)
@@ -383,7 +416,11 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		html := "<!DOCTYPE html><html><body><ul>"
 		for _, file := range files {
-			html += "<li><a href=\"" + file + "\">" + file + "</a></li>"
+			html += "<li><a href=\"" + file + "\">" + file + "</a>"
+			if len(updatedAt) != 0 {
+				html += " " + updatedAt[file].String()
+			}
+			html += "</li>"
 		}
 		html += "</ul></body></html>"
 		fmt.Fprintln(w, html)

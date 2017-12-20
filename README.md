@@ -47,6 +47,7 @@ ACCESS_LOG                | Send access logs to /dev/stdout.                  | 
 STRIP_PATH                | Strip path prefix.                                |          | -
 CONTENT_ENCODING          | Compress response data if the request allows.     |          | false
 HEALTHCHECK_PATH          | If it's specified, the path always returns 200 OK |          | -
+GET_ALL_PAGES_IN_DIR      | If true will make several calls to get all pages of destination directory |          | false
 
 ### 2. Run the application
 
