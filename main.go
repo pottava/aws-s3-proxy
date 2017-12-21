@@ -348,8 +348,9 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 		key = key[1:]
 	}
 	req := &s3.ListObjectsInput{
-		Bucket: aws.String(backet),
-		Prefix: aws.String(key),
+		Bucket:    aws.String(backet),
+		Prefix:    aws.String(key),
+		Delimiter: aws.String("/"),
 	}
 	result, err := s3.New(awsSession()).ListObjects(req)
 	if err != nil {
@@ -363,8 +364,11 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 		if len(candidate) == 0 {
 			continue
 		}
-		if strings.Contains(candidate, "/") {
-			candidates[candidate[0:strings.Index(candidate, "/")]+"/"] = true
+		candidates[candidate] = true
+	}
+	for _, obj := range result.CommonPrefixes {
+		candidate := strings.Replace(aws.StringValue(obj.Prefix), key, "", -1)
+		if len(candidate) == 0 {
 			continue
 		}
 		candidates[candidate] = true
