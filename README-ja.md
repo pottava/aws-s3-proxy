@@ -24,6 +24,7 @@ AWS_SECRET_ACCESS_KEY     | API を使うための AWS シークレットキー 
 AWS_API_ENDPOINT          | API 接続先エンドポイント（通常指定する必要なし）       |          | -
 INDEX_DOCUMENT            | インデックスドキュメントの名前                       |          | index.html
 DIRECTORY_LISTINGS        | / で終わる URL の場合、ファイル一覧を返す             |          | false
+DIRECTORY_LISTINGS_FORMAT | `html` がセットされていたらファイル一覧を HTML で返す |       | - 
 HTTP_CACHE_CONTROL        | S3 の `Cache-Control` 属性を上書きして返します      |        | S3 オブジェクト属性値
 HTTP_EXPIRES              | S3 の `Expires` 属性を上書きして返します            |        | S3 オブジェクト属性値
 BASIC_AUTH_USER           | Basic 認証をかけるなら、その `ユーザ名`              |        | -
@@ -39,6 +40,7 @@ ACCESS_LOG                | 標準出力へアクセスログを送る          
 STRIP_PATH                | 指定した Prefix を S3 のパスから削除                |         | -
 CONTENT_ENCODING          | リクエストが許可して入ればレスポンスを圧縮します       |        | false
 HEALTHCHECK_PATH          | 指定すると Basic 認証設定の有無などに依らず 200 OK を返します |   | -
+GET_ALL_PAGES_IN_DIR      | 指定ディレクトリの全てのオブジェクトを返す |          | false
 
 ### 2. アプリを起動します
 

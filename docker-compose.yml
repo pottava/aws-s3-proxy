@@ -32,4 +32,5 @@ services:
       - ACCESS_LOG=true
       - CONTENT_ENCODING
       - HEALTHCHECK_PATH
+      - GET_ALL_PAGES_IN_DIR=true
     container_name: app
