@@ -2,6 +2,8 @@
 
 ![circleci status](https://circleci.com/gh/pottava/aws-s3-proxy.svg?style=shield&circle-token=9bc17d02e4513df42196523a1791465e65d8ab01) 
 
+[![pottava/s3-proxy](http://dockeri.co/image/pottava/s3-proxy)](https://hub.docker.com/r/pottava/s3-proxy/)
+
 Supported tags and respective `Dockerfile` links:  
 ・latest ([prod/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/Dockerfile))  
 ・1.1 ([prod/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/Dockerfile))  

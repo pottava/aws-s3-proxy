@@ -1,5 +1,7 @@
 # Basic 認証も可能な AWS S3 へのリバースプロキシ
 
+[![pottava/s3-proxy](http://dockeri.co/image/pottava/s3-proxy)](https://hub.docker.com/r/pottava/s3-proxy/)
+
 
 ## 概要
 
