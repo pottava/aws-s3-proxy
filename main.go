@@ -72,12 +72,6 @@ func main() {
 		}
 	})
 
-	if c.healthCheckPath != "" {
-		http.HandleFunc(c.healthCheckPath, func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-		})
-	}
-
 	// Listen & Serve
 	log.Printf("[service] listening on port %s", c.port)
 	if (len(c.sslCert) > 0) && (len(c.sslKey) > 0) {
@@ -274,9 +268,19 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	rangeHeader := r.Header.Get("Range")
 
+	// Strip the prefix, if it's present.
 	if len(c.stripPath) > 0 {
-		path = strings.Replace(path, c.stripPath, "", 1)
+		path = strings.TrimPrefix(path, c.stripPath)
 	}
+
+	// If there is a health check path defined, and if this path matches it,
+	// then return 200 OK and return.
+	// Note: we want to apply the health check *after* the prefix is stripped.
+	if len(c.healthCheckPath) > 0 && path == c.healthCheckPath {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	idx := strings.Index(path, "symlink.json")
 	if idx > -1 {
 		result, err := s3get(c.s3Bucket, c.s3KeyPrefix+path[:idx+12], rangeHeader)
