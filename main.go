@@ -396,7 +396,7 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 	candidates := map[string]bool{}
 	updatedAt := map[string]time.Time{}
 	for _, obj := range result.Contents {
-		candidate := strings.Replace(aws.StringValue(obj.Key), key, "", -1)
+		candidate := strings.TrimPrefix(aws.StringValue(obj.Key), key)
 		if len(candidate) == 0 {
 			continue
 		}
@@ -404,7 +404,7 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 		updatedAt[candidate] = *obj.LastModified
 	}
 	for _, obj := range result.CommonPrefixes {
-		candidate := strings.Replace(aws.StringValue(obj.Prefix), key, "", -1)
+		candidate := strings.TrimPrefix(aws.StringValue(obj.Prefix), key)
 		if len(candidate) == 0 {
 			continue
 		}
