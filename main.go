@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"reflect"
@@ -36,6 +37,7 @@ type config struct {
 	basicAuthUser    string // BASIC_AUTH_USER
 	basicAuthPass    string // BASIC_AUTH_PASS
 	port             string // APP_PORT
+	host             string // APP_HOST
 	accessLog        bool   // ACCESS_LOG
 	sslCert          string // SSL_CERT_PATH
 	sslKey           string // SSL_KEY_PATH
@@ -73,11 +75,12 @@ func main() {
 	})
 
 	// Listen & Serve
-	log.Printf("[service] listening on port %s", c.port)
+	addr := net.JoinHostPort(c.host, c.port)
+	log.Printf("[service] listening on %s", addr)
 	if (len(c.sslCert) > 0) && (len(c.sslKey) > 0) {
-		log.Fatal(http.ListenAndServeTLS(":"+c.port, c.sslCert, c.sslKey, nil))
+		log.Fatal(http.ListenAndServeTLS(addr, c.sslCert, c.sslKey, nil))
 	} else {
-		log.Fatal(http.ListenAndServe(":"+c.port, nil))
+		log.Fatal(http.ListenAndServe(addr, nil))
 	}
 }
 
@@ -140,6 +143,7 @@ func configFromEnvironmentVariables() *config {
 		basicAuthUser:    os.Getenv("BASIC_AUTH_USER"),
 		basicAuthPass:    os.Getenv("BASIC_AUTH_PASS"),
 		port:             port,
+		host:             os.Getenv("APP_HOST"),
 		accessLog:        accessLog,
 		sslCert:          os.Getenv("SSL_CERT_PATH"),
 		sslKey:           os.Getenv("SSL_KEY_PATH"),

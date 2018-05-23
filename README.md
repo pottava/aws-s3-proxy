@@ -45,6 +45,7 @@ CORS_ALLOW_METHODS        | CORS: Comma-delimited list of the allowed [HTTP requ
 CORS_ALLOW_HEADERS        | CORS: Comma-delimited list of the supported request headers. |          | -
 CORS_MAX_AGE              | CORS: Maximum number of seconds the results of a preflight request can be cached. |          | 600
 APP_PORT                  | The port number to be assigned for listening.     |          | 80
+APP_HOST                  | The host name used to the listener                |          | Listens on all available unicast and anycast IP addresses of the local system.
 ACCESS_LOG                | Send access logs to /dev/stdout.                  |          | false
 STRIP_PATH                | Strip path prefix.                                |          | -
 CONTENT_ENCODING          | Compress response data if the request allows.     |          | false
