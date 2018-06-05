@@ -201,7 +201,7 @@ func wrapper(f func(w http.ResponseWriter, r *http.Request)) http.Handler {
 			w.Header().Set("Access-Control-Allow-Headers", c.corsAllowHeaders)
 			w.Header().Set("Access-Control-Max-Age", strconv.FormatInt(c.corsMaxAge, 10))
 		}
-		if (len(c.basicAuthUser) > 0) && (len(c.basicAuthPass) > 0) && !auth(r) {
+		if (len(c.basicAuthUser) > 0) && (len(c.basicAuthPass) > 0) && !auth(r) && !isHealthCheckPath(r) {
 			w.Header().Set("WWW-Authenticate", `Basic realm="REALM"`)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
@@ -245,6 +245,14 @@ func auth(r *http.Request) bool {
 	if username, password, ok := r.BasicAuth(); ok {
 		return username == c.basicAuthUser &&
 			password == c.basicAuthPass
+	}
+	return false
+}
+
+func isHealthCheckPath(r *http.Request) bool {
+	path := r.URL.Path
+	if len(c.healthCheckPath) > 0 && path == c.healthCheckPath {
+		return true
 	}
 	return false
 }
