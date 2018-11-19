@@ -332,12 +332,12 @@ func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput) {
 	setStrHeader(w, "ETag", obj.ETag)
 	setTimeHeader(w, "Last-Modified", obj.LastModified)
 
-	httpStatus := determineHttpStatus(obj)
+	httpStatus := determineHTTPStatus(obj)
 
 	w.WriteHeader(httpStatus)
 }
 
-func determineHttpStatus(obj *s3.GetObjectOutput) int {
+func determineHTTPStatus(obj *s3.GetObjectOutput) int {
 
 	httpStatus := http.StatusOK
 
