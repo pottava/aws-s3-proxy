@@ -2,9 +2,8 @@ version: "2.1"
 
 services:
   app:
-    build: dev/
-    image: aws-s3-proxy:dev
-    command: go run /go/src/github.com/pottava/aws-s3-proxy/main.go
+    image: golang:1.11.4-alpine3.8
+    command: go run main.go
     ports:
       - 8080:80
     volumes:
