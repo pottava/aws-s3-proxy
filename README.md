@@ -5,9 +5,10 @@
 [![pottava/s3-proxy](http://dockeri.co/image/pottava/s3-proxy)](https://hub.docker.com/r/pottava/s3-proxy/)
 
 Supported tags and respective `Dockerfile` links:  
-・latest ([prod/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/Dockerfile))  
-・1.1 ([prod/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/Dockerfile))  
-・1 ([prod/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/Dockerfile))  
+・latest ([prod/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/linux/1.4/Dockerfile))  
+・1.4 ([prod/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/linux/1.4/Dockerfile))  
+・1.4-win ([prod/windows/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/windows/1.4/Dockerfile))  
+・1 ([prod/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/prod/linux/1.4/Dockerfile))  
 
 ## Description
 
