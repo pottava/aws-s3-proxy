@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-type config struct {
+type config struct { // nolint
 	awsRegion        string // AWS_REGION
 	awsAPIEndpoint   string // AWS_API_ENDPOINT
 	s3Bucket         string // AWS_S3_BUCKET
@@ -96,7 +96,10 @@ func configFromEnvironmentVariables() *config {
 	}
 	region := os.Getenv("AWS_REGION")
 	if len(region) == 0 {
-		region = "us-east-1"
+		region = os.Getenv("AWS_DEFAULT_REGION")
+		if len(region) == 0 {
+			region = "us-east-1"
+		}
 	}
 	endpoint := os.Getenv("AWS_API_ENDPOINT")
 	if len(endpoint) == 0 {
@@ -235,7 +238,7 @@ func wrapper(f func(w http.ResponseWriter, r *http.Request)) http.Handler {
 
 		if c.accessLog {
 			log.Printf("[%s] %.3f %d %s %s",
-				addr, time.Now().Sub(proc).Seconds(),
+				addr, time.Since(proc).Seconds(),
 				writer.status, r.Method, r.URL)
 		}
 	})
@@ -303,7 +306,7 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 		}
 		var link symlink
 		buf := new(bytes.Buffer)
-		buf.ReadFrom(result.Body)
+		buf.ReadFrom(result.Body) // nolint
 		err = json.Unmarshal(buf.Bytes(), &link)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -326,7 +329,7 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 	}
 	setHeadersFromAwsResponse(w, obj)
 
-	io.Copy(w, obj.Body)
+	io.Copy(w, obj.Body) // nolint
 }
 
 func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput) {
@@ -435,9 +438,7 @@ func getObjsFromS3(req *s3.ListObjectsInput, key string) (*s3.ListObjectsOutput,
 }
 
 func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
-	if strings.HasPrefix(key, "/") {
-		key = key[1:]
-	}
+	key = strings.TrimPrefix(key, "/")
 	req := &s3.ListObjectsInput{
 		Bucket:    aws.String(backet),
 		Prefix:    aws.String(key),
