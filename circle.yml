@@ -1,45 +1,49 @@
-machine:
-  environment:
-    IMPORT_PATH: "github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
-    PRIVATE_GOPATH: "$(echo $GOPATH | sed 's/:.*$//g')" # Needed because CircleCI has two paths in the GOPATH.
-    REPO_ROOT: "$PRIVATE_GOPATH/src/$IMPORT_PATH"
+version: 2
+jobs:
+  test:
+    working_directory: /go/src/github.com/pottava/aws-s3-proxy
+    docker:
+      - image: circleci/golang:1.11.4
+    steps:
+      - checkout
+      - run: go get -u github.com/golang/dep/...
+      - run: dep ensure
+      - run: curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.12.5
+      - run:
+          name: Run tests
+          command: |
+            ./bin/golangci-lint run --config .golangci.yml
+            go test -cover -bench -benchmem $(go list ./...)
+  build:
+    working_directory: /go/src/github.com/pottava/aws-s3-proxy
+    docker:
+      - image: circleci/golang:1.11.4
+    steps:
+      - checkout
+      - run: go get -u github.com/golang/dep/...
+      - run: dep ensure
+      - run: go get github.com/mitchellh/gox
+      - run: go get github.com/tcnksm/ghr
+      - run:
+          name: Build and release
+          command: |
+            mkdir artifacts
+            gox --osarch "linux/amd64 darwin/amd64 windows/amd64" -ldflags "-s -w -X main.date=$(date +%Y-%m-%d --utc) -X main.version=${CIRCLE_TAG}" -output "./artifacts/{{.OS}}_{{.Arch}}"
+            ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace ${CIRCLE_TAG} ./artifacts/
 
-dependencies:
-  cache_directories:
-    - ~/cache
-  pre:
-      # Prepare directories.
-      - mkdir -p ~/cache "$PRIVATE_GOPATH/src/$IMPORT_PATH"
-      # Install go 1.8
-      - sudo rm -rf /usr/local/go
-      - cd ~/cache && if [ ! -e go1.8.linux-amd64.tar.gz ]; then wget https://storage.googleapis.com/golang/go1.8.linux-amd64.tar.gz; fi
-      - cd ~/cache && sudo tar -C /usr/local -xzf go1.8.linux-amd64.tar.gz
-      - go version
-      # Install test utils
-      - go get -u github.com/golang/dep/...
-      - go get github.com/golang/lint/golint
-  post:
-    - >
-      echo "export BUILD_VERSION=\"`git --git-dir=${CHECKOUT_PATH}/.git describe --always --dirty`\"" >> ~/.circlerc;
-      echo "export BUILD_DATE=\"`date +%FT%T%z`\"" >> ~/.circlerc;
-  override:
-    # Copy repository to GOPATH.
-    - rsync -az --delete ./ "$PRIVATE_GOPATH/src/$IMPORT_PATH/"
-
-test:
-  pre:
-    - cd ${REPO_ROOT} && go vet ./...
-    - cd ${REPO_ROOT} && golint ./...
-    - cd ${REPO_ROOT} && dep ensure; exit 0
-  override:
-    - cd ${REPO_ROOT} && go test -cover -bench -benchmem `go list ./... | grep -v /vendor/` -v
-
-deployment:
+workflows:
+  version: 2
+  dev:
+    jobs:
+      - test:
+          filters:
+            branches:
+              only: /.*/
   release:
-    tag: /v[0-9]+(\.[0-9]+)*/
-    commands:
-      - go get github.com/mitchellh/gox
-      - go get github.com/tcnksm/ghr
-      - export GODEBUG=netdns=go
-      - cd ${REPO_ROOT} && gox --osarch "linux/amd64 darwin/amd64 windows/amd64" -ldflags "-s -w -X main.version=$BUILD_VERSION -X main.date=$BUILD_DATE" -output "dist/${CIRCLE_PROJECT_REPONAME}_{{.OS}}_{{.Arch}}"
-      - cd ${REPO_ROOT} && ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace `git describe --tags` dist/
+    jobs:
+      - build:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
