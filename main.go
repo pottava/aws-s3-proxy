@@ -65,7 +65,7 @@ var (
 	client  *http.Client
 )
 
-func ConfigureClient() {
+func configureClient() {
 	transport := &http.Transport{
 		MaxIdleConns:       c.maxIdleConns,
 		IdleConnTimeout:    c.idleConnTimeout,
@@ -79,7 +79,7 @@ func ConfigureClient() {
 
 func main() {
 	c = configFromEnvironmentVariables()
-	ConfigureClient()
+	configureClient()
 
 	http.Handle("/", wrapper(awss3))
 
