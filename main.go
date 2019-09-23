@@ -20,6 +20,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
@@ -121,9 +122,9 @@ func configFromEnvironmentVariables() *config {
 	if b, err := strconv.ParseBool(os.Getenv("ACCESS_LOG")); err == nil {
 		accessLog = b
 	}
-	contentEncoging := false
+	contentEncoding := false
 	if b, err := strconv.ParseBool(os.Getenv("CONTENT_ENCODING")); err == nil {
-		contentEncoging = b
+		contentEncoding = b
 	}
 	corsMaxAge := int64(600)
 	if i, err := strconv.ParseInt(os.Getenv("CORS_MAX_AGE"), 10, 64); err == nil {
@@ -151,7 +152,7 @@ func configFromEnvironmentVariables() *config {
 		sslCert:          os.Getenv("SSL_CERT_PATH"),
 		sslKey:           os.Getenv("SSL_KEY_PATH"),
 		stripPath:        os.Getenv("STRIP_PATH"),
-		contentEncoding:  contentEncoging,
+		contentEncoding:  contentEncoding,
 		corsAllowOrigin:  os.Getenv("CORS_ALLOW_ORIGIN"),
 		corsAllowMethods: os.Getenv("CORS_ALLOW_METHODS"),
 		corsAllowHeaders: os.Getenv("CORS_ALLOW_HEADERS"),
@@ -298,7 +299,7 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 
 	idx := strings.Index(path, "symlink.json")
 	if idx > -1 {
-		result, err := s3get(c.s3Bucket, c.s3KeyPrefix+path[:idx+12], rangeHeader)
+		result, err := s3get(c.s3Bucket, c.s3KeyPrefix+path[:idx+12], rangeHeader, r)
 		if err != nil {
 			code, message := awsError(err)
 			http.Error(w, message, code)
@@ -321,7 +322,7 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 		}
 		path += c.indexDocument
 	}
-	obj, err := s3get(c.s3Bucket, c.s3KeyPrefix+path, rangeHeader)
+	obj, err := s3get(c.s3Bucket, c.s3KeyPrefix+path, rangeHeader, r)
 	if err != nil {
 		code, message := awsError(err)
 		http.Error(w, message, code)
@@ -399,7 +400,19 @@ func getFileSizeAsString(obj *s3.GetObjectOutput) string {
 	return totalSizeString
 }
 
-func s3get(backet, key, rangeHeader string) (*s3.GetObjectOutput, error) {
+/**
+Function adapted from this answer:https://github.com/aws/aws-sdk-go/issues/1292
+*/
+func ForwardAcceptEncodingHeader(incomingRequest *http.Request) request.Option {
+	acceptEncoding := incomingRequest.Header.Get("Accept-Encoding")
+	return func(r *request.Request) {
+		if acceptEncoding != "" {
+			r.HTTPRequest.Header.Add("Accept-Encoding", acceptEncoding)
+		}
+	}
+}
+
+func s3get(bucket, key, rangeHeader string, r *http.Request) (*s3.GetObjectOutput, error) {
 	var rangeHeaderAwsString *string
 
 	if len(rangeHeader) > 0 {
@@ -407,11 +420,15 @@ func s3get(backet, key, rangeHeader string) (*s3.GetObjectOutput, error) {
 	}
 
 	req := &s3.GetObjectInput{
-		Bucket: aws.String(backet),
+		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		Range:  rangeHeaderAwsString,
 	}
-	return s3.New(awsSession()).GetObject(req)
+
+	ctx := r.Context()
+	s3Session := s3.New(awsSession())
+	return s3Session.GetObjectWithContext(
+		ctx, req, ForwardAcceptEncodingHeader(r))
 }
 
 func getObjsFromS3(req *s3.ListObjectsInput, key string) (*s3.ListObjectsOutput, error) {
