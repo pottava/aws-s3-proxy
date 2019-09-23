@@ -52,6 +52,9 @@ STRIP_PATH                | Strip path prefix.                                | 
 CONTENT_ENCODING          | Compress response data if the request allows.     |          | false
 HEALTHCHECK_PATH          | If it's specified, the path always returns 200 OK |          | -
 GET_ALL_PAGES_IN_DIR      | If true will make several calls to get all pages of destination directory |          | false
+MAX_IDLE_CONNECTIONS      | Allowed number of idle connections to the S3 storage |       | 150
+IDLE_CONNECTION_TIMEOUT   | Allowed timeout to the S3 storage.                |          | 10
+DISABLE_COMPRESSION       | If true will pass encoded content through as-is.  |          | true
 
 ### 2. Run the application
 
