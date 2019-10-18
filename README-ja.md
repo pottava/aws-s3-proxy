@@ -40,7 +40,7 @@ CORS_MAX_AGE       | CORS における preflight リクエスト結果のキャ�
 APP_PORT                  | このサービスが待機する `ポート番号`                  |        | 80
 ACCESS_LOG                | 標準出力へアクセスログを送る                        |        | false
 STRIP_PATH                | 指定した Prefix を S3 のパスから削除                |         | -
-CONTENT_ENCODING          | リクエストが許可して入ればレスポンスを圧縮します       |        | false
+CONTENT_ENCODING          | リクエストが許可して入ればレスポンスを圧縮します       |        | true
 HEALTHCHECK_PATH          | 指定すると Basic 認証設定の有無などに依らず 200 OK を返します |   | -
 GET_ALL_PAGES_IN_DIR      | 指定ディレクトリの全てのオブジェクトを返す |          | false
 

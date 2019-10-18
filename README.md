@@ -49,7 +49,7 @@ APP_PORT                  | The port number to be assigned for listening.     | 
 APP_HOST                  | The host name used to the listener                |          | Listens on all available unicast and anycast IP addresses of the local system.
 ACCESS_LOG                | Send access logs to /dev/stdout.                  |          | false
 STRIP_PATH                | Strip path prefix.                                |          | -
-CONTENT_ENCODING          | Compress response data if the request allows.     |          | false
+CONTENT_ENCODING          | Compress response data if the request allows.     |          | true
 HEALTHCHECK_PATH          | If it's specified, the path always returns 200 OK |          | -
 GET_ALL_PAGES_IN_DIR      | If true will make several calls to get all pages of destination directory |          | false
 
