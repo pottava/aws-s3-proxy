@@ -49,22 +49,9 @@ type config struct { // nolint
 
 // Setup configurations with environment variables
 func Setup() {
-	if len(os.Getenv("AWS_ACCESS_KEY_ID")) == 0 {
-		log.Print("Not defined environment variable: AWS_ACCESS_KEY_ID")
-	}
-	if len(os.Getenv("AWS_SECRET_ACCESS_KEY")) == 0 {
-		log.Print("Not defined environment variable: AWS_SECRET_ACCESS_KEY")
-	}
-	if len(os.Getenv("AWS_S3_BUCKET")) == 0 {
-		log.Fatal("Missing required environment variable: AWS_S3_BUCKET")
-	}
 	region := os.Getenv("AWS_REGION")
 	if len(region) == 0 {
 		region = os.Getenv("AWS_DEFAULT_REGION")
-	}
-	endpoint := os.Getenv("AWS_API_ENDPOINT")
-	if len(endpoint) == 0 {
-		endpoint = ""
 	}
 	port := os.Getenv("APP_PORT")
 	if len(port) == 0 {
@@ -112,7 +99,7 @@ func Setup() {
 	}
 	Config = &config{
 		AwsRegion:          region,
-		AwsAPIEndpoint:     endpoint,
+		AwsAPIEndpoint:     os.Getenv("AWS_API_ENDPOINT"),
 		S3Bucket:           os.Getenv("AWS_S3_BUCKET"),
 		S3KeyPrefix:        os.Getenv("AWS_S3_KEY_PREFIX"),
 		IndexDocument:      indexDocument,

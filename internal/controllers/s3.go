@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,11 +13,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/go-openapi/swag"
-	"github.com/pottava/aws-s3-proxy/internal/common"
 	"github.com/pottava/aws-s3-proxy/internal/config"
+	"github.com/pottava/aws-s3-proxy/internal/service"
 )
 
 // AwsS3 handles requests for Amazon S3
@@ -44,13 +42,12 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 		rangeHeader = aws.String(candidate)
 	}
 
-	sess := common.AwsSession(aws.String(config.Config.AwsRegion))
-	ctx := r.Context()
+	client := service.NewClient(r.Context(), aws.String(config.Config.AwsRegion))
 
 	// Replace path with symlink.json
 	idx := strings.Index(path, "symlink.json")
 	if idx > -1 {
-		replaced, err := replacePathWithSymlink(ctx, sess, c.S3Bucket, c.S3KeyPrefix+path[:idx+12])
+		replaced, err := replacePathWithSymlink(client, c.S3Bucket, c.S3KeyPrefix+path[:idx+12])
 		if err != nil {
 			code, message := toHTTPError(err)
 			http.Error(w, message, code)
@@ -61,13 +58,13 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 	// Ends with / -> listing or index.html
 	if strings.HasSuffix(path, "/") {
 		if c.DirectoryListing {
-			s3listFiles(ctx, sess, w, r, c.S3Bucket, c.S3KeyPrefix+path)
+			s3listFiles(w, r, client, c.S3Bucket, c.S3KeyPrefix+path)
 			return
 		}
 		path += c.IndexDocument
 	}
 	// Get a S3 object
-	obj, err := common.S3get(ctx, sess, c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
+	obj, err := client.S3get(c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
 	if err != nil {
 		code, message := toHTTPError(err)
 		http.Error(w, message, code)
@@ -78,9 +75,8 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, obj.Body) // nolint
 }
 
-func replacePathWithSymlink(ctx context.Context, sess *session.Session, bucket, symlinkPath string,
-) (*string, error) {
-	obj, err := common.S3get(ctx, sess, bucket, symlinkPath, nil)
+func replacePathWithSymlink(client service.AWS, bucket, symlinkPath string) (*string, error) {
+	obj, err := client.S3get(bucket, symlinkPath, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -145,10 +141,10 @@ func setTimeHeader(w http.ResponseWriter, key string, value *time.Time) {
 	}
 }
 
-func s3listFiles(ctx context.Context, sess *session.Session, w http.ResponseWriter, r *http.Request, bucket, prefix string) {
+func s3listFiles(w http.ResponseWriter, r *http.Request, client service.AWS, bucket, prefix string) {
 	prefix = strings.TrimPrefix(prefix, "/")
 
-	result, err := common.S3listObjects(ctx, sess, bucket, prefix)
+	result, err := client.S3listObjects(bucket, prefix)
 	if err != nil {
 		code, message := toHTTPError(err)
 		http.Error(w, message, code)

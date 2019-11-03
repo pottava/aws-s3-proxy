@@ -1,4 +1,4 @@
-package common
+package service
 
 import (
 	"crypto/tls"
@@ -9,8 +9,7 @@ import (
 	"github.com/pottava/aws-s3-proxy/internal/config"
 )
 
-// AwsSession returns a session of AWS requests
-func AwsSession(region *string) *session.Session {
+func awsSession(region *string) *session.Session {
 	cfg := &aws.Config{
 		HTTPClient: configureClient(),
 	}
