@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"compress/zlib"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,11 +18,13 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"context"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 type config struct { // nolint
@@ -52,6 +55,7 @@ type config struct { // nolint
 	maxIdleConns       int           // MAX_IDLE_CONNECTIONS
 	idleConnTimeout    time.Duration // IDLE_CONNECTION_TIMEOUT
 	disableCompression bool          // DISABLE_COMPRESSION
+	insecureTLS     　 bool   // Disables TLS validation on request endpoints.
 }
 
 type symlink struct {
@@ -101,6 +105,13 @@ func main() {
 	}
 }
 
+func guessBucketRegion(bucket string) (string, error) {
+	sess := session.Must(session.NewSession(&aws.Config{}))
+	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	defer cancel()
+	return s3manager.GetBucketRegion(ctx, sess, bucket, "us-east-1")
+}
+
 func configFromEnvironmentVariables() *config {
 	if len(os.Getenv("AWS_ACCESS_KEY_ID")) == 0 {
 		log.Print("Not defined environment variable: AWS_ACCESS_KEY_ID")
@@ -113,9 +124,13 @@ func configFromEnvironmentVariables() *config {
 	}
 	region := os.Getenv("AWS_REGION")
 	if len(region) == 0 {
-		region = os.Getenv("AWS_DEFAULT_REGION")
-		if len(region) == 0 {
-			region = "us-east-1"
+		var err error
+		region, err = guessBucketRegion(os.Getenv("AWS_S3_BUCKET"))
+		if err != nil {
+			region = os.Getenv("AWS_DEFAULT_REGION")
+			if len(region) == 0 {
+				region = "us-east-1"
+			}
 		}
 	}
 	endpoint := os.Getenv("AWS_API_ENDPOINT")
@@ -162,6 +177,10 @@ func configFromEnvironmentVariables() *config {
 	if b, err := strconv.ParseBool(os.Getenv("DISABLE_COMPRESSION")); err == nil {
 		disableCompression = b
 	}
+	insecureTLS := false
+	if b, err := strconv.ParseBool(os.Getenv("INSECURE_TLS")); err == nil {
+		insecureTLS = b
+	}
 	conf := &config{
 		awsRegion:          region,
 		awsAPIEndpoint:     endpoint,
@@ -190,6 +209,7 @@ func configFromEnvironmentVariables() *config {
 		maxIdleConns:       maxIdleConns,
 		idleConnTimeout:    idleConnTimeout,
 		disableCompression: disableCompression,
+		insecureTLS:        insecureTLS,
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", conf.s3Bucket)
@@ -531,9 +551,17 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 }
 
 func awsSession() *session.Session {
+	tlsCfg := &tls.Config{}
+	if c.insecureTLS {
+		tlsCfg.InsecureSkipVerify = true
+	}
 	config := &aws.Config{
-		Region:     aws.String(c.awsRegion),
-		HTTPClient: client,
+		Region: aws.String(c.awsRegion),
+		HTTPClient: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tlsCfg,
+			},
+		},
 	}
 	if len(c.awsAPIEndpoint) > 0 {
 		config.Endpoint = aws.String(c.awsAPIEndpoint)
