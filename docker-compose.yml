@@ -2,11 +2,12 @@ version: "2.1"
 
 services:
   app:
-    image: golang:1.11.4-alpine3.8
+    image: golang:1.13.3-alpine3.10
     command: go run main.go
     ports:
       - 8080:80
     volumes:
+      - $GOPATH:/go
       - .:/go/src/github.com/pottava/aws-s3-proxy
     working_dir: /go/src/github.com/pottava/aws-s3-proxy
     environment:
