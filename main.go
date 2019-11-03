@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"compress/zlib"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -49,6 +50,7 @@ type config struct { // nolint
 	corsMaxAge       int64  // CORS_MAX_AGE
 	healthCheckPath  string // HEALTHCHECK_PATH
 	allPagesInDir    bool   // GET_ALL_PAGES_IN_DIR
+	insecureTLS      bool   // Disables TLS validation on request endpoints.
 }
 
 type symlink struct {
@@ -133,6 +135,10 @@ func configFromEnvironmentVariables() *config {
 	if b, err := strconv.ParseBool(os.Getenv("GET_ALL_PAGES_IN_DIR")); err == nil {
 		allPagesInDir = b
 	}
+	insecureTLS := false
+	if b, err := strconv.ParseBool(os.Getenv("INSECURE_TLS")); err == nil {
+		insecureTLS = b
+	}
 	conf := &config{
 		awsRegion:        region,
 		awsAPIEndpoint:   endpoint,
@@ -158,6 +164,7 @@ func configFromEnvironmentVariables() *config {
 		corsMaxAge:       corsMaxAge,
 		healthCheckPath:  os.Getenv("HEALTHCHECK_PATH"),
 		allPagesInDir:    allPagesInDir,
+		insecureTLS:      insecureTLS,
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", conf.s3Bucket)
@@ -499,8 +506,17 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 }
 
 func awsSession() *session.Session {
+	tlsCfg := &tls.Config{}
+	if c.insecureTLS {
+		tlsCfg.InsecureSkipVerify = true
+	}
 	config := &aws.Config{
 		Region: aws.String(c.awsRegion),
+		HTTPClient: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tlsCfg,
+			},
+		},
 	}
 	if len(c.awsAPIEndpoint) > 0 {
 		config.Endpoint = aws.String(c.awsAPIEndpoint)

@@ -1,19 +1,19 @@
 # Reverse proxy for AWS S3 w/ basic authentication
 
-![circleci status](https://circleci.com/gh/pottava/aws-s3-proxy.svg?style=shield&circle-token=9bc17d02e4513df42196523a1791465e65d8ab01) 
+![circleci status](https://circleci.com/gh/pottava/aws-s3-proxy.svg?style=shield&circle-token=9bc17d02e4513df42196523a1791465e65d8ab01)
 
 [![pottava/s3-proxy](http://dockeri.co/image/pottava/s3-proxy)](https://hub.docker.com/r/pottava/s3-proxy/)
 
-Supported tags and respective `Dockerfile` links:  
-・latest ([docker/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/1.4/Dockerfile))  
-・1.4 ([docker/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/1.4/Dockerfile))  
-・1.4-win ([docker/windows/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/windows/1.4/Dockerfile))  
-・1 ([docker/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/1.4/Dockerfile))  
+Supported tags and respective `Dockerfile` links:
+・latest ([docker/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/1.4/Dockerfile))
+・1.4 ([docker/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/1.4/Dockerfile))
+・1.4-win ([docker/windows/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/windows/1.4/Dockerfile))
+・1 ([docker/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/1.4/Dockerfile))
 
 ## Description
 
-This is a reverse proxy for AWS S3, which is able to provide basic authentication as well.  
-You don't need to configure a Bucket for `Website Hosting`.  
+This is a reverse proxy for AWS S3, which is able to provide basic authentication as well.
+You don't need to configure a Bucket for `Website Hosting`.
 
 http://this-proxy.com/access/ -> s3://backet/access/index.html
 
@@ -24,9 +24,9 @@ http://this-proxy.com/access/ -> s3://backet/access/index.html
 
 ### 1. Set environment variables
 
-Environment Variables     | Description                                       | Required | Default 
+Environment Variables     | Description                                       | Required | Default
 ------------------------- | ------------------------------------------------- | -------- | -----------------
-AWS_S3_BUCKET             | The `S3 bucket` to be proxied with this app.      | *        | 
+AWS_S3_BUCKET             | The `S3 bucket` to be proxied with this app.      | *        |
 AWS_S3_KEY_PREFIX         | You can configure `S3 object key` prefix.         |          | -
 AWS_REGION                | The AWS `region` where the S3 bucket exists.      |          | us-east-1
 AWS_ACCESS_KEY_ID         | AWS `access key` for API access.                  |          | EC2 Instance Role
@@ -34,7 +34,7 @@ AWS_SECRET_ACCESS_KEY     | AWS `secret key` for API access.                  | 
 AWS_API_ENDPOINT          | The endpoint for AWS API for local development.   |          | -
 INDEX_DOCUMENT            | Name of your index document.                      |          | index.html
 DIRECTORY_LISTINGS        | List files when a specified URL ends with /.      |          | false
-DIRECTORY_LISTINGS_FORMAT | Configures directory listing to be `html` (spider parsable) |       | - 
+DIRECTORY_LISTINGS_FORMAT | Configures directory listing to be `html` (spider parsable) |       | -
 HTTP_CACHE_CONTROL        | Overrides S3's HTTP `Cache-Control` header.       |          | S3 Object metadata
 HTTP_EXPIRES              | Overrides S3's HTTP `Expires` header.             |          | S3 Object metadata
 BASIC_AUTH_USER           | User for basic authentication.                    |          | -
@@ -52,16 +52,17 @@ STRIP_PATH                | Strip path prefix.                                | 
 CONTENT_ENCODING          | Compress response data if the request allows.     |          | true
 HEALTHCHECK_PATH          | If it's specified, the path always returns 200 OK |          | -
 GET_ALL_PAGES_IN_DIR      | If true will make several calls to get all pages of destination directory |          | false
+INSECURE_TLS              | If true it will skip cert checks                  |          | false
 
 ### 2. Run the application
 
 `docker run -d -p 8080:80 -e AWS_REGION -e AWS_S3_BUCKET pottava/s3-proxy`
 
-* with basic auth:  
+* with basic auth:
 
 `docker run -d -p 8080:80 -e AWS_REGION -e AWS_S3_BUCKET -e BASIC_AUTH_USER -e BASIC_AUTH_PASS pottava/s3-proxy`
 
-* with TLS:  
+* with TLS:
 
 `docker run -d -p 8080:80 -e AWS_REGION -e AWS_S3_BUCKET -e SSL_CERT_PATH -e SSL_KEY_PATH pottava/s3-proxy`
 
@@ -69,7 +70,7 @@ GET_ALL_PAGES_IN_DIR      | If true will make several calls to get all pages of 
 
 `docker run -d -p 8080:80 -e PROXY_URL -e CORS_ALLOW_ORIGIN -e CORS_ALLOW_METHODS -e CORS_ALLOW_HEADERS -e CORS_MAX_AGE pottava/s3-proxy`
 
-* with docker-compose.yml:  
+* with docker-compose.yml:
 
 ```
 proxy:
