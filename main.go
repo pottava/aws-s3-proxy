@@ -28,31 +28,34 @@ import (
 )
 
 type config struct { // nolint
-	awsRegion        string // AWS_REGION
-	awsAPIEndpoint   string // AWS_API_ENDPOINT
-	s3Bucket         string // AWS_S3_BUCKET
-	s3KeyPrefix      string // AWS_S3_KEY_PREFIX
-	indexDocument    string // INDEX_DOCUMENT
-	directoryListing bool   // DIRECTORY_LISTINGS
-	dirListingFormat string // DIRECTORY_LISTINGS_FORMAT
-	httpCacheControl string // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
-	httpExpires      string // HTTP_EXPIRES (Thu, 01 Dec 1994 16:00:00 GMT ...)
-	basicAuthUser    string // BASIC_AUTH_USER
-	basicAuthPass    string // BASIC_AUTH_PASS
-	port             string // APP_PORT
-	host             string // APP_HOST
-	accessLog        bool   // ACCESS_LOG
-	sslCert          string // SSL_CERT_PATH
-	sslKey           string // SSL_KEY_PATH
-	stripPath        string // STRIP_PATH
-	contentEncoding  bool   // CONTENT_ENCODING
-	corsAllowOrigin  string // CORS_ALLOW_ORIGIN
-	corsAllowMethods string // CORS_ALLOW_METHODS
-	corsAllowHeaders string // CORS_ALLOW_HEADERS
-	corsMaxAge       int64  // CORS_MAX_AGE
-	healthCheckPath  string // HEALTHCHECK_PATH
-	allPagesInDir    bool   // GET_ALL_PAGES_IN_DIR
-	insecureTLS      bool   // Disables TLS validation on request endpoints.
+	awsRegion          string        // AWS_REGION
+	awsAPIEndpoint     string        // AWS_API_ENDPOINT
+	s3Bucket           string        // AWS_S3_BUCKET
+	s3KeyPrefix        string        // AWS_S3_KEY_PREFIX
+	indexDocument      string        // INDEX_DOCUMENT
+	directoryListing   bool          // DIRECTORY_LISTINGS
+	dirListingFormat   string        // DIRECTORY_LISTINGS_FORMAT
+	httpCacheControl   string        // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
+	httpExpires        string        // HTTP_EXPIRES (Thu, 01 Dec 1994 16:00:00 GMT ...)
+	basicAuthUser      string        // BASIC_AUTH_USER
+	basicAuthPass      string        // BASIC_AUTH_PASS
+	port               string        // APP_PORT
+	host               string        // APP_HOST
+	accessLog          bool          // ACCESS_LOG
+	sslCert            string        // SSL_CERT_PATH
+	sslKey             string        // SSL_KEY_PATH
+	stripPath          string        // STRIP_PATH
+	contentEncoding    bool          // CONTENT_ENCODING
+	corsAllowOrigin    string        // CORS_ALLOW_ORIGIN
+	corsAllowMethods   string        // CORS_ALLOW_METHODS
+	corsAllowHeaders   string        // CORS_ALLOW_HEADERS
+	corsMaxAge         int64         // CORS_MAX_AGE
+	healthCheckPath    string        // HEALTHCHECK_PATH
+	allPagesInDir      bool          // GET_ALL_PAGES_IN_DIR
+	maxIdleConns       int           // MAX_IDLE_CONNECTIONS
+	idleConnTimeout    time.Duration // IDLE_CONNECTION_TIMEOUT
+	disableCompression bool          // DISABLE_COMPRESSION
+	insecureTLS     　 bool   // Disables TLS validation on request endpoints.
 }
 
 type symlink struct {
@@ -63,10 +66,24 @@ var (
 	version string
 	date    string
 	c       *config
+	client  *http.Client
 )
+
+func configureClient() {
+	transport := &http.Transport{
+		MaxIdleConns:       c.maxIdleConns,
+		IdleConnTimeout:    c.idleConnTimeout,
+		DisableCompression: c.disableCompression,
+	}
+
+	client = &http.Client{
+		Transport: transport,
+	}
+}
 
 func main() {
 	c = configFromEnvironmentVariables()
+	configureClient()
 
 	http.Handle("/", wrapper(awss3))
 
@@ -136,9 +153,9 @@ func configFromEnvironmentVariables() *config {
 	if b, err := strconv.ParseBool(os.Getenv("ACCESS_LOG")); err == nil {
 		accessLog = b
 	}
-	contentEncoging := false
+	contentEncoding := false
 	if b, err := strconv.ParseBool(os.Getenv("CONTENT_ENCODING")); err == nil {
-		contentEncoging = b
+		contentEncoding = b
 	}
 	corsMaxAge := int64(600)
 	if i, err := strconv.ParseInt(os.Getenv("CORS_MAX_AGE"), 10, 64); err == nil {
@@ -148,36 +165,51 @@ func configFromEnvironmentVariables() *config {
 	if b, err := strconv.ParseBool(os.Getenv("GET_ALL_PAGES_IN_DIR")); err == nil {
 		allPagesInDir = b
 	}
+	maxIdleConns := 150
+	if b, err := strconv.ParseInt(os.Getenv("MAX_IDLE_CONNECTIONS"), 10, 16); err == nil {
+		maxIdleConns = int(b)
+	}
+	idleConnTimeout := time.Duration(10) * time.Second
+	if b, err := strconv.ParseInt(os.Getenv("IDLE_CONNECTION_TIMEOUT"), 10, 64); err == nil {
+		idleConnTimeout = time.Duration(b) * time.Second
+	}
+	disableCompression := true
+	if b, err := strconv.ParseBool(os.Getenv("DISABLE_COMPRESSION")); err == nil {
+		disableCompression = b
+	}
 	insecureTLS := false
 	if b, err := strconv.ParseBool(os.Getenv("INSECURE_TLS")); err == nil {
 		insecureTLS = b
 	}
 	conf := &config{
-		awsRegion:        region,
-		awsAPIEndpoint:   endpoint,
-		s3Bucket:         os.Getenv("AWS_S3_BUCKET"),
-		s3KeyPrefix:      os.Getenv("AWS_S3_KEY_PREFIX"),
-		indexDocument:    indexDocument,
-		directoryListing: directoryListings,
-		dirListingFormat: os.Getenv("DIRECTORY_LISTINGS_FORMAT"),
-		httpCacheControl: os.Getenv("HTTP_CACHE_CONTROL"),
-		httpExpires:      os.Getenv("HTTP_EXPIRES"),
-		basicAuthUser:    os.Getenv("BASIC_AUTH_USER"),
-		basicAuthPass:    os.Getenv("BASIC_AUTH_PASS"),
-		port:             port,
-		host:             os.Getenv("APP_HOST"),
-		accessLog:        accessLog,
-		sslCert:          os.Getenv("SSL_CERT_PATH"),
-		sslKey:           os.Getenv("SSL_KEY_PATH"),
-		stripPath:        os.Getenv("STRIP_PATH"),
-		contentEncoding:  contentEncoging,
-		corsAllowOrigin:  os.Getenv("CORS_ALLOW_ORIGIN"),
-		corsAllowMethods: os.Getenv("CORS_ALLOW_METHODS"),
-		corsAllowHeaders: os.Getenv("CORS_ALLOW_HEADERS"),
-		corsMaxAge:       corsMaxAge,
-		healthCheckPath:  os.Getenv("HEALTHCHECK_PATH"),
-		allPagesInDir:    allPagesInDir,
-		insecureTLS:      insecureTLS,
+		awsRegion:          region,
+		awsAPIEndpoint:     endpoint,
+		s3Bucket:           os.Getenv("AWS_S3_BUCKET"),
+		s3KeyPrefix:        os.Getenv("AWS_S3_KEY_PREFIX"),
+		indexDocument:      indexDocument,
+		directoryListing:   directoryListings,
+		dirListingFormat:   os.Getenv("DIRECTORY_LISTINGS_FORMAT"),
+		httpCacheControl:   os.Getenv("HTTP_CACHE_CONTROL"),
+		httpExpires:        os.Getenv("HTTP_EXPIRES"),
+		basicAuthUser:      os.Getenv("BASIC_AUTH_USER"),
+		basicAuthPass:      os.Getenv("BASIC_AUTH_PASS"),
+		port:               port,
+		host:               os.Getenv("APP_HOST"),
+		accessLog:          accessLog,
+		sslCert:            os.Getenv("SSL_CERT_PATH"),
+		sslKey:             os.Getenv("SSL_KEY_PATH"),
+		stripPath:          os.Getenv("STRIP_PATH"),
+		contentEncoding:    contentEncoding,
+		corsAllowOrigin:    os.Getenv("CORS_ALLOW_ORIGIN"),
+		corsAllowMethods:   os.Getenv("CORS_ALLOW_METHODS"),
+		corsAllowHeaders:   os.Getenv("CORS_ALLOW_HEADERS"),
+		corsMaxAge:         corsMaxAge,
+		healthCheckPath:    os.Getenv("HEALTHCHECK_PATH"),
+		allPagesInDir:      allPagesInDir,
+		maxIdleConns:       maxIdleConns,
+		idleConnTimeout:    idleConnTimeout,
+		disableCompression: disableCompression,
+		insecureTLS:        insecureTLS,
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", conf.s3Bucket)
@@ -419,7 +451,7 @@ func getFileSizeAsString(obj *s3.GetObjectOutput) string {
 	return totalSizeString
 }
 
-func s3get(backet, key, rangeHeader string) (*s3.GetObjectOutput, error) {
+func s3get(bucket, key, rangeHeader string) (*s3.GetObjectOutput, error) {
 	var rangeHeaderAwsString *string
 
 	if len(rangeHeader) > 0 {
@@ -427,7 +459,7 @@ func s3get(backet, key, rangeHeader string) (*s3.GetObjectOutput, error) {
 	}
 
 	req := &s3.GetObjectInput{
-		Bucket: aws.String(backet),
+		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		Range:  rangeHeaderAwsString,
 	}
