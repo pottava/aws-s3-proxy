@@ -7,6 +7,7 @@
 Supported tags and respective `Dockerfile` links:
 
 ・latest ([docker/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/1.4/Dockerfile))  
+・2.0rc ([docker/linux/2.0/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/2.0/Dockerfile))  
 ・1.4 ([docker/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/1.4/Dockerfile))  
 ・1.4-win ([docker/windows/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/windows/1.4/Dockerfile))  
 ・1 ([docker/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/1.4/Dockerfile))
@@ -52,7 +53,7 @@ ACCESS_LOG                | Send access logs to /dev/stdout.                  | 
 STRIP_PATH                | Strip path prefix.                                |          | -
 CONTENT_ENCODING          | Compress response data if the request allows.     |          | true
 HEALTHCHECK_PATH          | If it's specified, the path always returns 200 OK |          | -
-GET_ALL_PAGES_IN_DIR      | If true will make several calls to get all pages of destination directory | false
+GET_ALL_PAGES_IN_DIR      | If true will make several calls to get all pages of destination directory | | false
 MAX_IDLE_CONNECTIONS      | Allowed number of idle connections to the S3 storage |       | 150
 IDLE_CONNECTION_TIMEOUT   | Allowed timeout to the S3 storage.                |          | 10
 DISABLE_COMPRESSION       | If true will pass encoded content through as-is.  |          | true
