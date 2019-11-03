@@ -114,7 +114,11 @@ func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput, h
 	setStrHeader(w, "Content-Disposition", obj.ContentDisposition)
 	setStrHeader(w, "Content-Encoding", obj.ContentEncoding)
 	setStrHeader(w, "Content-Language", obj.ContentLanguage)
-	setIntHeader(w, "Content-Length", obj.ContentLength)
+
+	// Fix https://github.com/pottava/aws-s3-proxy/issues/20
+	if len(w.Header().Get("Content-Encoding")) == 0 {
+		setIntHeader(w, "Content-Length", obj.ContentLength)
+	}
 	setStrHeader(w, "Content-Range", obj.ContentRange)
 	setStrHeader(w, "Content-Type", obj.ContentType)
 	setStrHeader(w, "ETag", obj.ETag)
