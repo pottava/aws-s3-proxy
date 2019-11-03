@@ -3,11 +3,10 @@ jobs:
   test:
     working_directory: /go/src/github.com/pottava/aws-s3-proxy
     docker:
-      - image: circleci/golang:1.11.4
+      - image: circleci/golang:1.13.3
     steps:
       - checkout
-      - run: go get -u github.com/golang/dep/...
-      - run: dep ensure
+      - run: go mod vendor
       - run: curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.12.5
       - run:
           name: Run tests
@@ -17,11 +16,10 @@ jobs:
   build:
     working_directory: /go/src/github.com/pottava/aws-s3-proxy
     docker:
-      - image: circleci/golang:1.11.4
+      - image: circleci/golang:1.13.3
     steps:
       - checkout
-      - run: go get -u github.com/golang/dep/...
-      - run: dep ensure
+      - run: go mod vendor
       - run: go get github.com/mitchellh/gox
       - run: go get github.com/tcnksm/ghr
       - run:

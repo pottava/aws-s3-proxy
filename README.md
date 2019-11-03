@@ -13,10 +13,10 @@ Supported tags and respective `Dockerfile` links:
 
 ## Description
 
-This is a reverse proxy for AWS S3, which is able to provide basic authentication as well.
+This is a reverse proxy for AWS S3, which is able to provide basic authentication as well.  
 You don't need to configure a Bucket for `Website Hosting`.
 
-http://this-proxy.com/access/ -> s3://backet/access/index.html
+http://this-proxy.com/access/ -> s3://bucket/access/index.html
 
 ([日本語はこちら](https://github.com/pottava/aws-s3-proxy/blob/master/README-ja.md))
 
@@ -52,7 +52,7 @@ ACCESS_LOG                | Send access logs to /dev/stdout.                  | 
 STRIP_PATH                | Strip path prefix.                                |          | -
 CONTENT_ENCODING          | Compress response data if the request allows.     |          | true
 HEALTHCHECK_PATH          | If it's specified, the path always returns 200 OK |          | -
-GET_ALL_PAGES_IN_DIR      | If true will make several calls to get all pages of destination directory | 
+GET_ALL_PAGES_IN_DIR      | If true will make several calls to get all pages of destination directory | false
 MAX_IDLE_CONNECTIONS      | Allowed number of idle connections to the S3 storage |       | 150
 IDLE_CONNECTION_TIMEOUT   | Allowed timeout to the S3 storage.                |          | 10
 DISABLE_COMPRESSION       | If true will pass encoded content through as-is.  |          | true
@@ -72,7 +72,7 @@ INSECURE_TLS              | If true it will skip cert checks                  | 
 
 * with CORS:
 
-`docker run -d -p 8080:80 -e PROXY_URL -e CORS_ALLOW_ORIGIN -e CORS_ALLOW_METHODS -e CORS_ALLOW_HEADERS -e CORS_MAX_AGE pottava/s3-proxy`
+`docker run -d -p 8080:80 -e CORS_ALLOW_ORIGIN -e CORS_ALLOW_METHODS -e CORS_ALLOW_HEADERS -e CORS_MAX_AGE pottava/s3-proxy`
 
 * with docker-compose.yml:
 
