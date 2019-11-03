@@ -18,11 +18,13 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"context"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 type config struct { // nolint
@@ -86,6 +88,13 @@ func main() {
 	}
 }
 
+func guessBucketRegion(bucket string) (string, error) {
+	sess := session.Must(session.NewSession(&aws.Config{}))
+	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	defer cancel()
+	return s3manager.GetBucketRegion(ctx, sess, bucket, "us-east-1")
+}
+
 func configFromEnvironmentVariables() *config {
 	if len(os.Getenv("AWS_ACCESS_KEY_ID")) == 0 {
 		log.Print("Not defined environment variable: AWS_ACCESS_KEY_ID")
@@ -98,9 +107,13 @@ func configFromEnvironmentVariables() *config {
 	}
 	region := os.Getenv("AWS_REGION")
 	if len(region) == 0 {
-		region = os.Getenv("AWS_DEFAULT_REGION")
-		if len(region) == 0 {
-			region = "us-east-1"
+		var err error
+		region, err = guessBucketRegion(os.Getenv("AWS_S3_BUCKET"))
+		if err != nil {
+			region = os.Getenv("AWS_DEFAULT_REGION")
+			if len(region) == 0 {
+				region = "us-east-1"
+			}
 		}
 	}
 	endpoint := os.Getenv("AWS_API_ENDPOINT")
