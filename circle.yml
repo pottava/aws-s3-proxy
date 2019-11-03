@@ -11,7 +11,8 @@ jobs:
       - run:
           name: Run tests
           command: |
-            ./bin/golangci-lint run --config .golangci.yml
+            # Circle CI kills this process because it requires a lot of memory
+            # ./bin/golangci-lint run --config .golangci.yml
             go test -cover -bench -benchmem $(go list ./...)
   build:
     working_directory: /go/src/github.com/pottava/aws-s3-proxy
