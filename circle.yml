@@ -6,8 +6,9 @@ jobs:
       - image: circleci/golang:1.13.3
     steps:
       - checkout
-      - run: go mod vendor
-      - run: curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.12.5
+      - run: go mod download
+      - run: go mod verify
+      - run: curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.20.1
       - run:
           name: Run tests
           command: |
@@ -20,14 +21,15 @@ jobs:
       - image: circleci/golang:1.13.3
     steps:
       - checkout
-      - run: go mod vendor
+      - run: go mod download
+      - run: go mod verify
       - run: go get github.com/mitchellh/gox
       - run: go get github.com/tcnksm/ghr
       - run:
           name: Build and release
           command: |
             mkdir artifacts
-            gox --osarch "linux/amd64 darwin/amd64 windows/amd64" -ldflags "-s -w -X main.date=$(date +%Y-%m-%d --utc) -X main.version=${CIRCLE_TAG}" -output "./artifacts/{{.OS}}_{{.Arch}}"
+            gox --osarch "linux/amd64 darwin/amd64 windows/amd64" -ldflags "-s -w -X main.ver=${CIRCLE_TAG} -X main.commit=${CIRCLE_SHA1:0:7} -X main.date=$(date +%Y-%m-%d --utc)" -output "./artifacts/{{.OS}}_{{.Arch}}"
             ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace ${CIRCLE_TAG} ./artifacts/
 
 workflows:
