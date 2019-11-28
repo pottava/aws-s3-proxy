@@ -29,6 +29,7 @@ func configureClient() *http.Client {
 		tlsCfg.InsecureSkipVerify = true
 	}
 	transport := &http.Transport{
+		Proxy:              http.ProxyFromEnvironment,
 		MaxIdleConns:       config.Config.MaxIdleConns,
 		IdleConnTimeout:    config.Config.IdleConnTimeout,
 		DisableCompression: config.Config.DisableCompression,
