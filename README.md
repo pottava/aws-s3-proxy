@@ -6,8 +6,8 @@
 
 Supported tags and respective `Dockerfile` links:
 
-・latest ([docker/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/1.4/Dockerfile))  
-・2.0rc ([docker/linux/2.0/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/2.0/Dockerfile))  
+・latest ([docker/linux/2.0/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/2.0/Dockerfile))  
+・2.0 ([docker/linux/2.0/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/2.0/Dockerfile))  
 ・1.4 ([docker/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/1.4/Dockerfile))  
 ・1.4-win ([docker/windows/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/windows/1.4/Dockerfile))  
 ・1 ([docker/linux/1.4/Dockerfile](https://github.com/pottava/aws-s3-proxy/blob/master/docker/linux/1.4/Dockerfile))

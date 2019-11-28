@@ -1,0 +1,24 @@
+name: Publish Docker images
+
+on:
+  push:
+    tags:
+    - "*"
+
+jobs:
+  docker-image-2-0:
+    name: v2.0
+    if: github.event_name == 'push' && contains(github.ref, 'v2.0.')
+    runs-on: ubuntu-18.04
+    env:
+      IMAGE_NAME: docker.pkg.github.com/${{ github.repository }}/linux:2.0
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+    - name: Build & Push
+      run: |
+        docker login docker.pkg.github.com -u owner -p ${{ secrets.GITHUB_TOKEN }}
+        docker build -t $IMAGE_NAME docker/linux/2.0/
+        docker push $IMAGE_NAME
+    timeout-minutes: 10
