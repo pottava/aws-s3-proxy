@@ -5,7 +5,16 @@ all: build
 deps:
 	@docker run --rm -it -v "${GOPATH}"/src/github.com:/go/src/github.com \
 			-w /go/src/github.com/pottava/aws-s3-proxy \
-			supinf/go-dep:0.5 ensure
+			golang:1.13.4-alpine3.10 sh -c 'apk --no-cache add git && go mod vendor'
+
+up:
+	@docker-compose up -d
+
+logs:
+	@docker-compose logs -f
+
+down:
+	@docker-compose down -v
 
 test:
 	@docker run --rm -it -v "${GOPATH}"/src/github.com:/go/src/github.com \
