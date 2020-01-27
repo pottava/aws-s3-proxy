@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/pottava/aws-s3-proxy/internal/config"
 )
 
@@ -32,6 +33,14 @@ func WrapHandler(handler func(w http.ResponseWriter, r *http.Request)) http.Hand
 		if len(c.HealthCheckPath) > 0 && r.URL.Path != c.HealthCheckPath {
 			if (len(c.BasicAuthUser) > 0) && (len(c.BasicAuthPass) > 0) &&
 				!auth(r, c.BasicAuthUser, c.BasicAuthPass) {
+				w.Header().Set("WWW-Authenticate", `Basic realm="REALM"`)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+		}
+		// Auth with JWT
+		if len(c.HealthCheckPath) > 0 && r.URL.Path != c.HealthCheckPath {
+			if len(c.JwtSecretKey) > 0 && !isValidJwt(r) {
 				w.Header().Set("WWW-Authenticate", `Basic realm="REALM"`)
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
@@ -99,4 +108,23 @@ func splitCsvLine(data string) []string {
 		parsed[i] = strings.TrimSpace(val)
 	}
 	return parsed
+}
+
+func isValidJwt(r *http.Request) bool {
+	reqToken := r.Header.Get("Authorization")
+	splitToken := strings.Split(reqToken, "Bearer")
+	if len(splitToken) != 2 {
+		// Error: Bearer token not in proper format
+		return false
+	}
+	reqToken = strings.TrimSpace(splitToken[1])
+	token, err := jwt.Parse(reqToken, func(t *jwt.Token) (interface{}, error) {
+		secretKey := config.Config.JwtSecretKey
+		return []byte(secretKey), nil
+	})
+	if err == nil && token.Valid {
+		return true
+	} else {
+		return false
+	}
 }
