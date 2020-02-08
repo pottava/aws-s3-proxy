@@ -45,6 +45,7 @@ type config struct { // nolint
 	IdleConnTimeout    time.Duration // IDLE_CONNECTION_TIMEOUT
 	DisableCompression bool          // DISABLE_COMPRESSION
 	InsecureTLS        bool          // Disables TLS validation on request endpoints.
+	JwtSecretKey       string        // JWT_SECRET_KEY
 }
 
 // Setup configurations with environment variables
@@ -126,6 +127,7 @@ func Setup() {
 		IdleConnTimeout:    idleConnTimeout,
 		DisableCompression: disableCompression,
 		InsecureTLS:        insecureTLS,
+		JwtSecretKey:       os.Getenv("JWT_SECRET_KEY"),
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", Config.S3Bucket)
