@@ -19,6 +19,12 @@ func WrapHandler(handler func(w http.ResponseWriter, r *http.Request)) http.Hand
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := config.Config
 
+		// If there is a health check path defined, and if this path matches it,
+		// then return 200 OK and return.
+		if len(c.HealthCheckPath) > 0 && r.URL.Path == c.HealthCheckPath {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		// CORS
 		if (len(c.CorsAllowOrigin) > 0) &&
 			(len(c.CorsAllowMethods) > 0) &&
@@ -30,21 +36,17 @@ func WrapHandler(handler func(w http.ResponseWriter, r *http.Request)) http.Hand
 			w.Header().Set("Access-Control-Max-Age", strconv.FormatInt(c.CorsMaxAge, 10))
 		}
 		// BasicAuth
-		if len(c.HealthCheckPath) > 0 && r.URL.Path != c.HealthCheckPath {
-			if (len(c.BasicAuthUser) > 0) && (len(c.BasicAuthPass) > 0) &&
-				!auth(r, c.BasicAuthUser, c.BasicAuthPass) {
-				w.Header().Set("WWW-Authenticate", `Basic realm="REALM"`)
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return
-			}
+		if (len(c.BasicAuthUser) > 0) && (len(c.BasicAuthPass) > 0) &&
+			!auth(r, c.BasicAuthUser, c.BasicAuthPass) {
+			w.Header().Set("WWW-Authenticate", `Basic realm="REALM"`)
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
 		}
 		// Auth with JWT
-		if len(c.HealthCheckPath) > 0 && r.URL.Path != c.HealthCheckPath {
-			if len(c.JwtSecretKey) > 0 && !isValidJwt(r) {
-				w.Header().Set("WWW-Authenticate", `Basic realm="REALM"`)
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return
-			}
+		if len(c.JwtSecretKey) > 0 && !isValidJwt(r) {
+			w.Header().Set("WWW-Authenticate", `Basic realm="REALM"`)
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
 		}
 		proc := time.Now()
 		addr := r.RemoteAddr
@@ -122,9 +124,5 @@ func isValidJwt(r *http.Request) bool {
 		secretKey := config.Config.JwtSecretKey
 		return []byte(secretKey), nil
 	})
-	if err == nil && token.Valid {
-		return true
-	} else {
-		return false
-	}
+	return err == nil && token.Valid
 }
