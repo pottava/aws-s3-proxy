@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/go-openapi/swag"
 	"github.com/pottava/aws-s3-proxy/internal/config"
@@ -23,9 +24,11 @@ var (
 func main() {
 	validateAwsConfigurations()
 
-	http.Handle("/", common.WrapHandler(controllers.AwsS3))
+	httpMux := http.NewServeMux()
 
-	http.HandleFunc("/--version", func(w http.ResponseWriter, r *http.Request) {
+	httpMux.Handle("/", common.WrapHandler(controllers.AwsS3))
+
+	httpMux.HandleFunc("/--version", func(w http.ResponseWriter, r *http.Request) {
 		if len(commit) > 0 && len(date) > 0 {
 			fmt.Fprintf(w, "%s-%s (built at %s)\n", ver, commit, date)
 			return
@@ -39,10 +42,10 @@ func main() {
 
 	if (len(config.Config.SslCert) > 0) && (len(config.Config.SslKey) > 0) {
 		log.Fatal(http.ListenAndServeTLS(
-			addr, config.Config.SslCert, config.Config.SslKey, nil,
+			addr, config.Config.SslCert, config.Config.SslKey, &slashFix{httpMux},
 		))
 	} else {
-		log.Fatal(http.ListenAndServe(addr, nil))
+		log.Fatal(http.ListenAndServe(addr, &slashFix{httpMux}))
 	}
 }
 
@@ -62,4 +65,26 @@ func validateAwsConfigurations() {
 			config.Config.AwsRegion = region
 		}
 	}
+}
+
+type slashFix struct {
+	mux http.Handler
+}
+
+func (h *slashFix) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var pathBuilder strings.Builder
+	slash := false
+	for _, c := range r.URL.Path {
+		if c == '/' {
+			if !slash {
+				pathBuilder.WriteRune(c)
+			}
+			slash = true
+		} else {
+			pathBuilder.WriteRune(c)
+			slash = false
+		}
+	}
+	r.URL.Path = pathBuilder.String()
+	h.mux.ServeHTTP(w, r)
 }
