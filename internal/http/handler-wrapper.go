@@ -5,6 +5,7 @@ import (
 	"compress/zlib"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,6 +25,23 @@ func WrapHandler(handler func(w http.ResponseWriter, r *http.Request)) http.Hand
 		if len(c.HealthCheckPath) > 0 && r.URL.Path == c.HealthCheckPath {
 			w.WriteHeader(http.StatusOK)
 			return
+		}
+		// WhiteListIPs
+		if len(c.WhiteListIPRanges) > 0 {
+			clientIP := getIP(r)
+			log.Printf("[debug]: Client IP: %s", clientIP)
+			found := false
+			for _, whiteListIPRange := range c.WhiteListIPRanges {
+				ip := net.ParseIP(clientIP)
+				found = whiteListIPRange.Contains(ip)
+				if found {
+					break
+				}
+			}
+			if !found {
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
 		}
 		// CORS
 		if (len(c.CorsAllowOrigin) > 0) &&
@@ -84,6 +102,16 @@ func WrapHandler(handler func(w http.ResponseWriter, r *http.Request)) http.Hand
 				writer.status, r.Method, r.URL)
 		}
 	})
+}
+
+// getIP gets a requests IP address by reading off the forwarded-for
+// header (for proxies) and falls back to use the remote address.
+func getIP(r *http.Request) string {
+	forwarded := r.Header.Get("X-FORWARDED-FOR")
+	if forwarded != "" {
+		return forwarded
+	}
+	return r.RemoteAddr
 }
 
 func auth(r *http.Request, authUser, authPass string) bool {
