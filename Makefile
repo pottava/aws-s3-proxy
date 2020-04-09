@@ -1,33 +1,50 @@
-.PHONY: all deps test build
+SHELL:=/bin/bash
+BIN:=./bin
+GOLANGCI_LINT_VERSION?=1.24.0
 
+ifeq ($(OS),Windows_NT)
+    OSNAME = windows
+else
+    UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Linux)
+        OSNAME = linux
+		GOLANGCI_LINT_ARCHIVE=golangci-lint-$(GOLANGCI_LINT_VERSION)-linux-amd64.tar.gz
+    endif
+    ifeq ($(UNAME_S),Darwin)
+        OSNAME = darwin
+		GOLANGCI_LINT_ARCHIVE=golangci-lint-$(GOLANGCI_LINT_VERSION)-darwin-amd64.tar.gz
+    endif
+endif
+
+ifdef os
+  OSNAME=$(os)
+endif
+
+.PHONY: all
 all: build
 
+.PHONY: deps
 deps:
-	@docker run --rm -it -v "${GOPATH}/src/github.com:/go/src/github.com" \
-			-w /go/src/github.com/pottava/aws-s3-proxy \
-			golang:1.13.7-alpine3.11 sh -c 'apk --no-cache add git && go mod vendor'
+	@go mod tidy
+	@go mod vendor
 
-up:
-	@docker-compose up -d
+.PHONY: lint
+lint: $(BIN)/golangci-lint/golangci-lint ## lint
+	$(BIN)/golangci-lint/golangci-lint run
 
-logs:
-	@docker-compose logs -f
+$(BIN)/golangci-lint/golangci-lint:
+	curl -OL https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_LINT_VERSION)/$(GOLANGCI_LINT_ARCHIVE)
+	mkdir -p $(BIN)/golangci-lint/
+	tar -xf $(GOLANGCI_LINT_ARCHIVE) --strip-components=1 -C $(BIN)/golangci-lint/
+	chmod +x $(BIN)/golangci-lint
+	rm -f $(GOLANGCI_LINT_ARCHIVE)
 
-down:
-	@docker-compose down -v
+.PHONY: unit_test
+unit_test:
+	go test -v -mod=vendor -cover $$(go list ./...)
 
-test:
-	@docker run --rm -it -v "${GOPATH}/src/github.com:/go/src/github.com" \
-			-w /go/src/github.com/pottava/aws-s3-proxy \
-            golangci/golangci-lint:v1.23.1-alpine \
-			golangci-lint run --config .golangci.yml
-	@docker run --rm -it -v "${GOPATH}/src/github.com:/go/src/github.com" \
-			-w /go/src/github.com/pottava/aws-s3-proxy \
-			golangci/golangci-lint:v1.23.1-alpine \
-			sh -c "go list ./... | grep -v /vendor/ | xargs go test -p 1 -count=1"
-
-build:
-	@docker run --rm -it -v "${GOPATH}/src/github.com:/go/src/github.com" \
-			-w /go/src/github.com/pottava/aws-s3-proxy \
-			supinf/go-gox:1.11 --osarch "linux/amd64 darwin/amd64 windows/amd64" \
-			-ldflags "-s -w" -output "dist/{{.OS}}_{{.Arch}}"
+.PHONY: build
+build: unit_test
+	CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags="-s -w" -a -o ./artifacts/svc-unpacked ./cmd/aws-s3-proxy/
+	rm -rf ./artifacts/svc
+	upx -q -o ./artifacts/svc ./artifacts/svc-unpacked

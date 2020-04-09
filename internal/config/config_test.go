@@ -1,6 +1,7 @@
 package config
 
 import (
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -38,6 +39,7 @@ func defaultConfig() *config {
 		IdleConnTimeout:    time.Duration(10) * time.Second,
 		DisableCompression: true,
 		InsecureTLS:        false,
+		WhiteListIPRanges:  make([]*net.IPNet, 0),
 	}
 }
 
@@ -56,6 +58,7 @@ func TestChangeDefaults(t *testing.T) {
 	os.Setenv("IDLE_CONNECTION_TIMEOUT", "60")
 	os.Setenv("DISABLE_COMPRESSION", "FALSE")
 	os.Setenv("INSECURE_TLS", "t")
+	os.Setenv("WHITELIST_IP_RANGES", "10.0.0.0/24,198.5.5.3")
 
 	Setup()
 
@@ -69,6 +72,11 @@ func TestChangeDefaults(t *testing.T) {
 	expected.IdleConnTimeout = time.Duration(60) * time.Second
 	expected.DisableCompression = false
 	expected.InsecureTLS = true
+	expected.WhiteListIPRanges = make([]*net.IPNet, 0, 2)
+	for _, subStr := range []string{"10.0.0.0/24", "198.5.5.3/32"} {
+		_, subnet, _ := net.ParseCIDR(subStr)
+		expected.WhiteListIPRanges = append(expected.WhiteListIPRanges, subnet)
+	}
 
 	assert.Equal(t, expected, Config)
 }

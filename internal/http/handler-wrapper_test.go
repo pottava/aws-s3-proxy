@@ -60,6 +60,20 @@ func TestWithValidJWT(t *testing.T) {
 	assert.True(t, isValidJwt(req))
 }
 
+func TestWithValidRemoteIPXForwardedFor(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, sample, nil)
+	req.Header.Set("X-FORWARDED-FOR", "10.2.2.2")
+
+	assert.Equal(t, getIP(req), "10.2.2.2")
+}
+
+func TestWithValidRemoteIP(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, sample, nil)
+	req.RemoteAddr = "10.0.0.12"
+
+	assert.Equal(t, getIP(req), "10.0.0.12")
+}
+
 func TestWithoutValidJWT(t *testing.T) {
 	username := "user"
 	password := "pass"
