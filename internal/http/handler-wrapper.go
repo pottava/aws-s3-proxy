@@ -108,10 +108,16 @@ func WrapHandler(handler func(w http.ResponseWriter, r *http.Request)) http.Hand
 // header (for proxies) and falls back to use the remote address.
 func getIP(r *http.Request) string {
 	forwarded := r.Header.Get("X-FORWARDED-FOR")
+	retIP := r.RemoteAddr
 	if forwarded != "" {
-		return forwarded
+		retIP = forwarded
 	}
-	return r.RemoteAddr
+	//Lets remove port - if present
+	slices := strings.Split(retIP, ":")
+	if len(slices) > 1 {
+		retIP = strings.Join(slices[:len(slices)-1], ":")
+	}
+	return retIP
 }
 
 func auth(r *http.Request, authUser, authPass string) bool {

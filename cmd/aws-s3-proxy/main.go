@@ -33,11 +33,6 @@ func main() {
 		fmt.Fprintln(w, ver)
 	})
 
-	http.HandleFunc("/health-check", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintln(w, "ok")
-	})
-
 	// Listen & Serve
 	addr := net.JoinHostPort(config.Config.Host, config.Config.Port)
 	log.Printf("[service] listening on %s", addr)
