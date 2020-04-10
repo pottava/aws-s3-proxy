@@ -69,7 +69,7 @@ func TestWithValidRemoteIPXForwardedFor(t *testing.T) {
 
 func TestWithValidRemoteIP(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, sample, nil)
-	req.RemoteAddr = "10.0.0.12"
+	req.RemoteAddr = "10.0.0.12:64564"
 
 	assert.Equal(t, getIP(req), "10.0.0.12")
 }
