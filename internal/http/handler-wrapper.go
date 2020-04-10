@@ -26,10 +26,16 @@ func WrapHandler(handler func(w http.ResponseWriter, r *http.Request)) http.Hand
 			w.WriteHeader(http.StatusOK)
 			return
 		}
+		// Omiting healtcheck
+		if c.DebugOutput {
+			log.Printf("[debug]: URI requested %s", r.RequestURI)
+		}
 		// WhiteListIPs
 		if len(c.WhiteListIPRanges) > 0 {
 			clientIP := getIP(r)
-			log.Printf("[debug]: Client IP: %s", clientIP)
+			if c.DebugOutput {
+				log.Printf("[debug]: Client IP: %s", clientIP)
+			}
 			found := false
 			for _, whiteListIPRange := range c.WhiteListIPRanges {
 				ip := net.ParseIP(clientIP)
