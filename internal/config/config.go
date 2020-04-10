@@ -50,6 +50,7 @@ type config struct { // nolint
 	InsecureTLS        bool          // Disables TLS validation on request endpoints.
 	JwtSecretKey       string        // JWT_SECRET_KEY
 	WhiteListIPRanges  []*net.IPNet  // WHITELIST_IP_RANGES is commma separated list of IP's and IP ranges. Needs parsing.
+	DebugOutput        bool          // DEBUG_OUTPUT enable debug output
 }
 
 // Setup configurations with environment variables
@@ -111,6 +112,10 @@ func Setup() {
 			log.Fatalf("%v", err)
 		}
 	}
+	debugOutput := false
+	if b, err := strconv.ParseBool(os.Getenv("DEBUG_OUTPUT")); err == nil {
+		debugOutput = b
+	}
 	Config = &config{
 		AwsRegion:          region,
 		AwsAPIEndpoint:     os.Getenv("AWS_API_ENDPOINT"),
@@ -142,6 +147,7 @@ func Setup() {
 		InsecureTLS:        insecureTLS,
 		JwtSecretKey:       os.Getenv("JWT_SECRET_KEY"),
 		WhiteListIPRanges:  whiteListIPRanges,
+		DebugOutput:        debugOutput,
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", Config.S3Bucket)
