@@ -37,6 +37,7 @@ AWS_API_ENDPOINT          | The endpoint for AWS API for local development.   | 
 INDEX_DOCUMENT            | Name of your index document.                      |          | index.html
 DIRECTORY_LISTINGS        | List files when a specified URL ends with /.      |          | false
 DIRECTORY_LISTINGS_FORMAT | Configures directory listing to be `html` (spider parsable) |       | -
+DIRECTORY_LISTINGS_CHECK_INDEX | Check for `INDEX_DOCUMENT` in the folder before listing files |       | false
 HTTP_CACHE_CONTROL        | Overrides S3's HTTP `Cache-Control` header.       |          | S3 Object metadata
 HTTP_EXPIRES              | Overrides S3's HTTP `Expires` header.             |          | S3 Object metadata
 BASIC_AUTH_USER           | User for basic authentication.                    |          | -
