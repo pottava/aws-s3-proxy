@@ -58,8 +58,10 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 	// Ends with / -> listing or index.html
 	if strings.HasSuffix(path, "/") {
 		if c.DirectoryListing {
-			s3listFiles(w, r, client, c.S3Bucket, c.S3KeyPrefix+path)
-			return
+			if !c.DirListingCheckIndex || !client.S3exists(c.S3Bucket, c.S3KeyPrefix+path+c.IndexDocument) {
+				s3listFiles(w, r, client, c.S3Bucket, c.S3KeyPrefix+path)
+				return
+			}
 		}
 		path += c.IndexDocument
 	}

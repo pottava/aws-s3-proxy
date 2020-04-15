@@ -10,6 +10,7 @@ import (
 // AWS is a service to interact with original AWS services
 type AWS interface {
 	S3get(bucket, key string, rangeHeader *string) (*s3.GetObjectOutput, error)
+	S3exists(bucket, key string) bool
 	S3listObjects(bucket, prefix string) (*s3.ListObjectsOutput, error)
 }
 

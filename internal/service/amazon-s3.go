@@ -16,6 +16,20 @@ func (c client) S3get(bucket, key string, rangeHeader *string) (*s3.GetObjectOut
 	return s3.New(c.Session).GetObjectWithContext(c.Context, req)
 }
 
+// S3exists returns true if a specified key exists in Amazon S3
+func (c client) S3exists(bucket, key string) bool {
+	req := &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}
+
+	output, err := s3.New(c.Session).HeadObject(req)
+	if err != nil {
+		return false
+	}
+	return *output.ContentLength > 0
+}
+
 // S3listObjects returns a list of s3 objects
 func (c client) S3listObjects(bucket, prefix string) (*s3.ListObjectsOutput, error) {
 	req := &s3.ListObjectsInput{

@@ -17,35 +17,36 @@ func init() {
 }
 
 type config struct { // nolint
-	AwsRegion          string        // AWS_REGION
-	AwsAPIEndpoint     string        // AWS_API_ENDPOINT
-	S3Bucket           string        // AWS_S3_BUCKET
-	S3KeyPrefix        string        // AWS_S3_KEY_PREFIX
-	IndexDocument      string        // INDEX_DOCUMENT
-	DirectoryListing   bool          // DIRECTORY_LISTINGS
-	DirListingFormat   string        // DIRECTORY_LISTINGS_FORMAT
-	HTTPCacheControl   string        // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
-	HTTPExpires        string        // HTTP_EXPIRES (Thu, 01 Dec 1994 16:00:00 GMT ...)
-	BasicAuthUser      string        // BASIC_AUTH_USER
-	BasicAuthPass      string        // BASIC_AUTH_PASS
-	Port               string        // APP_PORT
-	Host               string        // APP_HOST
-	AccessLog          bool          // ACCESS_LOG
-	SslCert            string        // SSL_CERT_PATH
-	SslKey             string        // SSL_KEY_PATH
-	StripPath          string        // STRIP_PATH
-	ContentEncoding    bool          // CONTENT_ENCODING
-	CorsAllowOrigin    string        // CORS_ALLOW_ORIGIN
-	CorsAllowMethods   string        // CORS_ALLOW_METHODS
-	CorsAllowHeaders   string        // CORS_ALLOW_HEADERS
-	CorsMaxAge         int64         // CORS_MAX_AGE
-	HealthCheckPath    string        // HEALTHCHECK_PATH
-	AllPagesInDir      bool          // GET_ALL_PAGES_IN_DIR
-	MaxIdleConns       int           // MAX_IDLE_CONNECTIONS
-	IdleConnTimeout    time.Duration // IDLE_CONNECTION_TIMEOUT
-	DisableCompression bool          // DISABLE_COMPRESSION
-	InsecureTLS        bool          // Disables TLS validation on request endpoints.
-	JwtSecretKey       string        // JWT_SECRET_KEY
+	AwsRegion            string        // AWS_REGION
+	AwsAPIEndpoint       string        // AWS_API_ENDPOINT
+	S3Bucket             string        // AWS_S3_BUCKET
+	S3KeyPrefix          string        // AWS_S3_KEY_PREFIX
+	IndexDocument        string        // INDEX_DOCUMENT
+	DirectoryListing     bool          // DIRECTORY_LISTINGS
+	DirListingFormat     string        // DIRECTORY_LISTINGS_FORMAT
+	DirListingCheckIndex bool          // DIRECTORY_LISTINGS_CHECK_INDEX
+	HTTPCacheControl     string        // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
+	HTTPExpires          string        // HTTP_EXPIRES (Thu, 01 Dec 1994 16:00:00 GMT ...)
+	BasicAuthUser        string        // BASIC_AUTH_USER
+	BasicAuthPass        string        // BASIC_AUTH_PASS
+	Port                 string        // APP_PORT
+	Host                 string        // APP_HOST
+	AccessLog            bool          // ACCESS_LOG
+	SslCert              string        // SSL_CERT_PATH
+	SslKey               string        // SSL_KEY_PATH
+	StripPath            string        // STRIP_PATH
+	ContentEncoding      bool          // CONTENT_ENCODING
+	CorsAllowOrigin      string        // CORS_ALLOW_ORIGIN
+	CorsAllowMethods     string        // CORS_ALLOW_METHODS
+	CorsAllowHeaders     string        // CORS_ALLOW_HEADERS
+	CorsMaxAge           int64         // CORS_MAX_AGE
+	HealthCheckPath      string        // HEALTHCHECK_PATH
+	AllPagesInDir        bool          // GET_ALL_PAGES_IN_DIR
+	MaxIdleConns         int           // MAX_IDLE_CONNECTIONS
+	IdleConnTimeout      time.Duration // IDLE_CONNECTION_TIMEOUT
+	DisableCompression   bool          // DISABLE_COMPRESSION
+	InsecureTLS          bool          // Disables TLS validation on request endpoints.
+	JwtSecretKey         string        // JWT_SECRET_KEY
 }
 
 // Setup configurations with environment variables
@@ -65,6 +66,10 @@ func Setup() {
 	directoryListings := false
 	if b, err := strconv.ParseBool(os.Getenv("DIRECTORY_LISTINGS")); err == nil {
 		directoryListings = b
+	}
+	directoryListingsCheckIndex := false
+	if b, err := strconv.ParseBool(os.Getenv("DIRECTORY_LISTINGS_CHECK_INDEX")); err == nil {
+		directoryListingsCheckIndex = b
 	}
 	accessLog := false
 	if b, err := strconv.ParseBool(os.Getenv("ACCESS_LOG")); err == nil {
@@ -99,35 +104,36 @@ func Setup() {
 		insecureTLS = b
 	}
 	Config = &config{
-		AwsRegion:          region,
-		AwsAPIEndpoint:     os.Getenv("AWS_API_ENDPOINT"),
-		S3Bucket:           os.Getenv("AWS_S3_BUCKET"),
-		S3KeyPrefix:        os.Getenv("AWS_S3_KEY_PREFIX"),
-		IndexDocument:      indexDocument,
-		DirectoryListing:   directoryListings,
-		DirListingFormat:   os.Getenv("DIRECTORY_LISTINGS_FORMAT"),
-		HTTPCacheControl:   os.Getenv("HTTP_CACHE_CONTROL"),
-		HTTPExpires:        os.Getenv("HTTP_EXPIRES"),
-		BasicAuthUser:      os.Getenv("BASIC_AUTH_USER"),
-		BasicAuthPass:      os.Getenv("BASIC_AUTH_PASS"),
-		Port:               port,
-		Host:               os.Getenv("APP_HOST"),
-		AccessLog:          accessLog,
-		SslCert:            os.Getenv("SSL_CERT_PATH"),
-		SslKey:             os.Getenv("SSL_KEY_PATH"),
-		StripPath:          os.Getenv("STRIP_PATH"),
-		ContentEncoding:    contentEncoding,
-		CorsAllowOrigin:    os.Getenv("CORS_ALLOW_ORIGIN"),
-		CorsAllowMethods:   os.Getenv("CORS_ALLOW_METHODS"),
-		CorsAllowHeaders:   os.Getenv("CORS_ALLOW_HEADERS"),
-		CorsMaxAge:         corsMaxAge,
-		HealthCheckPath:    os.Getenv("HEALTHCHECK_PATH"),
-		AllPagesInDir:      allPagesInDir,
-		MaxIdleConns:       maxIdleConns,
-		IdleConnTimeout:    idleConnTimeout,
-		DisableCompression: disableCompression,
-		InsecureTLS:        insecureTLS,
-		JwtSecretKey:       os.Getenv("JWT_SECRET_KEY"),
+		AwsRegion:            region,
+		AwsAPIEndpoint:       os.Getenv("AWS_API_ENDPOINT"),
+		S3Bucket:             os.Getenv("AWS_S3_BUCKET"),
+		S3KeyPrefix:          os.Getenv("AWS_S3_KEY_PREFIX"),
+		IndexDocument:        indexDocument,
+		DirectoryListing:     directoryListings,
+		DirListingCheckIndex: directoryListingsCheckIndex,
+		DirListingFormat:     os.Getenv("DIRECTORY_LISTINGS_FORMAT"),
+		HTTPCacheControl:     os.Getenv("HTTP_CACHE_CONTROL"),
+		HTTPExpires:          os.Getenv("HTTP_EXPIRES"),
+		BasicAuthUser:        os.Getenv("BASIC_AUTH_USER"),
+		BasicAuthPass:        os.Getenv("BASIC_AUTH_PASS"),
+		Port:                 port,
+		Host:                 os.Getenv("APP_HOST"),
+		AccessLog:            accessLog,
+		SslCert:              os.Getenv("SSL_CERT_PATH"),
+		SslKey:               os.Getenv("SSL_KEY_PATH"),
+		StripPath:            os.Getenv("STRIP_PATH"),
+		ContentEncoding:      contentEncoding,
+		CorsAllowOrigin:      os.Getenv("CORS_ALLOW_ORIGIN"),
+		CorsAllowMethods:     os.Getenv("CORS_ALLOW_METHODS"),
+		CorsAllowHeaders:     os.Getenv("CORS_ALLOW_HEADERS"),
+		CorsMaxAge:           corsMaxAge,
+		HealthCheckPath:      os.Getenv("HEALTHCHECK_PATH"),
+		AllPagesInDir:        allPagesInDir,
+		MaxIdleConns:         maxIdleConns,
+		IdleConnTimeout:      idleConnTimeout,
+		DisableCompression:   disableCompression,
+		InsecureTLS:          insecureTLS,
+		JwtSecretKey:         os.Getenv("JWT_SECRET_KEY"),
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", Config.S3Bucket)
