@@ -8,7 +8,7 @@ RUN go mod verify
 RUN githash=$(git rev-parse --short HEAD 2>/dev/null) \
     && today=$(date +%Y-%m-%d --utc) \
     && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags '-s -w -X main.ver=${APP_VERSION} -X main.commit=${githash} -X main.date=${today}' \
+    -ldflags "-s -w -X main.ver=${APP_VERSION} -X main.commit=${githash} -X main.date=${today}" \
     -o /app
 
 FROM alpine:3.11 AS libs
