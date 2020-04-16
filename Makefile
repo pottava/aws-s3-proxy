@@ -31,3 +31,6 @@ build:
 			-w /go/src/github.com/pottava/aws-s3-proxy \
 			supinf/go-gox:1.11 --osarch "linux/amd64 darwin/amd64 windows/amd64" \
 			-ldflags "-s -w" -output "dist/{{.OS}}_{{.Arch}}"
+
+build-local:
+	@docker-compose -f docker-compose.local.yml build
