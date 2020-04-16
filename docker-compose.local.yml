@@ -1,0 +1,8 @@
+version: "3"
+
+services:
+  app:
+    build:
+      dockerfile: docker/local/Dockerfile
+      context: .
+    image: pottava/s3-proxy:local
