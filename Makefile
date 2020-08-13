@@ -1,6 +1,9 @@
 SHELL:=/bin/bash
 BIN:=./bin
-GOLANGCI_LINT_VERSION?=1.24.0
+GOLANGCI_LINT_VERSION?=1.28.0
+built_at := $(shell date +%s)
+git_commit := $(shell git describe --dirty --always)
+version=$(shell cat version | tr -d '\n')
 
 ifeq ($(OS),Windows_NT)
     OSNAME = windows
@@ -39,12 +42,17 @@ $(BIN)/golangci-lint/golangci-lint:
 	chmod +x $(BIN)/golangci-lint
 	rm -f $(GOLANGCI_LINT_ARCHIVE)
 
-.PHONY: unit_test
-unit_test:
+.PHONY: unit-test
+unit-test:
 	go test -v -mod=vendor -cover $$(go list ./...)
 
 .PHONY: build
-build: unit_test
-	CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags="-s -w" -a -o ./artifacts/svc-unpacked ./cmd/aws-s3-proxy/
+build: unit-test
+	echo $(git_commit) > sha
+	CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags="-s -w \
+	-X github.com/90poe/aws-s3-proxy/main.Commit=$(git_commit) \
+	-X github.com/90poe/aws-s3-proxy/main.Date=$(built_at) \
+    -X github.com/90poe/aws-s3-proxy/main.Ver=$(version)"\
+	 -a -o ./artifacts/svc-unpacked ./cmd/aws-s3-proxy/
 	rm -rf ./artifacts/svc
 	upx -q -o ./artifacts/svc ./artifacts/svc-unpacked

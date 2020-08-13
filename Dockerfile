@@ -1,14 +1,17 @@
-FROM alpine:3.11 as base
+FROM golang:1.14-alpine AS builder
+RUN apk --no-cache --update upgrade && \
+    apk --no-cache add gcc musl-dev git make upx bash ca-certificates && \
+    mkdir /tmp/tmp && chmod 1777 /tmp/tmp
+COPY . /build
 
-RUN apk --no-cache --update upgrade && apk --no-cache add ca-certificates && \
- mkdir /tmp/tmp && chmod 1777 /tmp/tmp
+RUN cd /build && make build
 
 FROM scratch
-COPY --from=base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=base /tmp/tmp /tmp
-COPY ./artifacts/svc /svc
-COPY ./sha /
-COPY ./version /
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder /tmp/tmp /tmp
+COPY --from=builder /build/artifacts/svc /svc
+COPY --from=builder /build/sha /
+COPY --from=builder /build/version /
 
 EXPOSE 8080 8888
 

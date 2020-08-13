@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	ver    = "dev"
-	commit string
-	date   string
+	Ver    = "dev"
+	Commit string
+	Date   string
 )
 
 func main() {
@@ -26,11 +26,11 @@ func main() {
 	http.Handle("/", common.WrapHandler(controllers.AwsS3))
 
 	http.HandleFunc("/--version", func(w http.ResponseWriter, r *http.Request) {
-		if len(commit) > 0 && len(date) > 0 {
-			fmt.Fprintf(w, "%s-%s (built at %s)\n", ver, commit, date)
+		if len(Commit) > 0 && len(Date) > 0 {
+			fmt.Fprintf(w, "%s-%s (built at %s)\n", Ver, Commit, Date)
 			return
 		}
-		fmt.Fprintln(w, ver)
+		fmt.Fprintln(w, Ver)
 	})
 
 	// Listen & Serve
