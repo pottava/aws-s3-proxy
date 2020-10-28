@@ -46,6 +46,8 @@ type config struct { // nolint
 	DisableCompression bool          // DISABLE_COMPRESSION
 	InsecureTLS        bool          // Disables TLS validation on request endpoints.
 	JwtSecretKey       string        // JWT_SECRET_KEY
+	ContentType        string        // Override default Content-Type
+	ContentDisposition string        // Override default Content-Disposition
 }
 
 // Setup configurations with environment variables
@@ -128,6 +130,8 @@ func Setup() {
 		DisableCompression: disableCompression,
 		InsecureTLS:        insecureTLS,
 		JwtSecretKey:       os.Getenv("JWT_SECRET_KEY"),
+		ContentType:        os.Getenv("CONTENT_TYPE"),
+		ContentDisposition: os.Getenv("CONTENT_DISPOSITION"),
 	}
 	// Proxy
 	log.Printf("[config] Proxy to %v", Config.S3Bucket)
