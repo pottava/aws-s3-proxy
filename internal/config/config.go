@@ -48,7 +48,6 @@ type config struct { // nolint
 	JwtSecretKey       string        // JWT_SECRET_KEY
 	ContentType        string        // Override default Content-Type
 	ContentDisposition string        // Override default Content-Disposition
-
 }
 
 // Setup configurations with environment variables
