@@ -107,7 +107,6 @@ func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput, h
 	} else {
 		setStrHeader(w, "Expires", obj.Expires)
 	}
-	setStrHeader(w, "Content-Disposition", obj.ContentDisposition)
 	setStrHeader(w, "Content-Encoding", obj.ContentEncoding)
 	setStrHeader(w, "Content-Language", obj.ContentLanguage)
 
@@ -116,7 +115,16 @@ func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput, h
 		setIntHeader(w, "Content-Length", obj.ContentLength)
 	}
 	setStrHeader(w, "Content-Range", obj.ContentRange)
-	setStrHeader(w, "Content-Type", obj.ContentType)
+	if config.Config.ContentType == "" {
+		setStrHeader(w, "Content-Type", obj.ContentType)
+	} else {
+		setStrHeader(w, "Content-Type", &config.Config.ContentType)
+	}
+	if config.Config.ContentDisposition == "" {
+		setStrHeader(w, "Content-Disposition", obj.ContentDisposition)
+	} else {
+		setStrHeader(w, "Content-Disposition", &config.Config.ContentDisposition)
+	}
 	setStrHeader(w, "ETag", obj.ETag)
 	setTimeHeader(w, "Last-Modified", obj.LastModified)
 

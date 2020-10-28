@@ -38,6 +38,8 @@ func defaultConfig() *config {
 		IdleConnTimeout:    time.Duration(10) * time.Second,
 		DisableCompression: true,
 		InsecureTLS:        false,
+		ContentType:        "",
+		ContentDisposition: "",
 	}
 }
 
@@ -56,6 +58,8 @@ func TestChangeDefaults(t *testing.T) {
 	os.Setenv("IDLE_CONNECTION_TIMEOUT", "60")
 	os.Setenv("DISABLE_COMPRESSION", "FALSE")
 	os.Setenv("INSECURE_TLS", "t")
+	os.Setenv("CONTENT_TYPE", "application/octet-stream")
+	os.Setenv("CONTENT_DISPOSITION", "attachment")
 
 	Setup()
 
@@ -69,6 +73,8 @@ func TestChangeDefaults(t *testing.T) {
 	expected.IdleConnTimeout = time.Duration(60) * time.Second
 	expected.DisableCompression = false
 	expected.InsecureTLS = true
+	expected.ContentType = "application/octet-stream"
+	expected.ContentDisposition = "attachment"
 
 	assert.Equal(t, expected, Config)
 }
