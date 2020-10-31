@@ -15,6 +15,7 @@ func defaultConfig() *config {
 		S3Bucket:           "",
 		S3KeyPrefix:        "",
 		IndexDocument:      "index.html",
+		IndexOn404:         false,
 		DirectoryListing:   false,
 		DirListingFormat:   "",
 		HTTPCacheControl:   "",
@@ -49,6 +50,7 @@ func TestConfigDefaults(t *testing.T) {
 func TestChangeDefaults(t *testing.T) {
 	os.Setenv("DIRECTORY_LISTINGS", "1")
 	os.Setenv("ACCESS_LOG", "True")
+	os.Setenv("INDEX_ON_404", "True")
 	os.Setenv("CONTENT_ENCODING", "f")
 	os.Setenv("CORS_MAX_AGE", "0")
 	os.Setenv("GET_ALL_PAGES_IN_DIR", "TRUE")
@@ -62,6 +64,7 @@ func TestChangeDefaults(t *testing.T) {
 	expected := defaultConfig()
 	expected.DirectoryListing = true
 	expected.AccessLog = true
+	expected.IndexOn404 = true
 	expected.ContentEncoding = false
 	expected.CorsMaxAge = 0
 	expected.AllPagesInDir = true
