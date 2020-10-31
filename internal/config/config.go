@@ -22,6 +22,7 @@ type config struct { // nolint
 	S3Bucket           string        // AWS_S3_BUCKET
 	S3KeyPrefix        string        // AWS_S3_KEY_PREFIX
 	IndexDocument      string        // INDEX_DOCUMENT
+	IndexOn404         bool          // INDEX_ON_404
 	DirectoryListing   bool          // DIRECTORY_LISTINGS
 	DirListingFormat   string        // DIRECTORY_LISTINGS_FORMAT
 	HTTPCacheControl   string        // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
@@ -61,6 +62,10 @@ func Setup() {
 	indexDocument := os.Getenv("INDEX_DOCUMENT")
 	if len(indexDocument) == 0 {
 		indexDocument = "index.html"
+	}
+	indexOn404 := false
+	if b, err := strconv.ParseBool(os.Getenv("INDEX_ON_404")); err == nil {
+		indexOn404 = b
 	}
 	directoryListings := false
 	if b, err := strconv.ParseBool(os.Getenv("DIRECTORY_LISTINGS")); err == nil {
@@ -104,6 +109,7 @@ func Setup() {
 		S3Bucket:           os.Getenv("AWS_S3_BUCKET"),
 		S3KeyPrefix:        os.Getenv("AWS_S3_KEY_PREFIX"),
 		IndexDocument:      indexDocument,
+		IndexOn404:         indexOn404,
 		DirectoryListing:   directoryListings,
 		DirListingFormat:   os.Getenv("DIRECTORY_LISTINGS_FORMAT"),
 		HTTPCacheControl:   os.Getenv("HTTP_CACHE_CONTROL"),

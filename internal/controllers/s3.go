@@ -67,8 +67,8 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 	obj, err := client.S3get(c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
 	if err != nil {
 		code, message := toHTTPError(err)
-		if code == 404 {
-			obj, err = client.S3get(c.S3Bucket, c.S3KeyPrefix+"index.html", rangeHeader)
+		if code == 404 && c.IndexOn404 {
+			obj, err = client.S3get(c.S3Bucket, c.S3KeyPrefix+c.IndexDocument, rangeHeader)
 			if err != nil {
 				code, message = toHTTPError(err)
 				http.Error(w, message, code)
