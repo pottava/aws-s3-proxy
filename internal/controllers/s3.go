@@ -158,6 +158,12 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, client service.AWS, buc
 		fmt.Fprintln(w, toHTML(files, updatedAt))
 		return
 	}
+	if strings.EqualFold(config.Config.DirListingFormat, "shtml") {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintln(w, toSimpleHTML(files))
+		return
+	}
+
 	// Output as a JSON
 	bytes, merr := json.Marshal(files)
 	if merr != nil {
@@ -209,4 +215,13 @@ func toHTML(files []string, updatedAt map[string]time.Time) string {
 		html += "</li>"
 	}
 	return html + "</ul></body></html>"
+}
+
+func toSimpleHTML(files []string) string {
+
+	html := "<!DOCTYPE html><html><body>"
+	for _, file := range files {
+		html += "<a href=\"" + file + "\">" + file + "</a><br>"
+	}
+	return html + "</body></html>"
 }
