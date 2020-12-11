@@ -38,6 +38,7 @@ func defaultConfig() *config {
 		IdleConnTimeout:    time.Duration(10) * time.Second,
 		DisableCompression: true,
 		InsecureTLS:        false,
+		SPA:                false,
 	}
 }
 
@@ -56,6 +57,7 @@ func TestChangeDefaults(t *testing.T) {
 	os.Setenv("IDLE_CONNECTION_TIMEOUT", "60")
 	os.Setenv("DISABLE_COMPRESSION", "FALSE")
 	os.Setenv("INSECURE_TLS", "t")
+	os.Setenv("SPA", "TRUE")
 
 	Setup()
 
@@ -69,6 +71,7 @@ func TestChangeDefaults(t *testing.T) {
 	expected.IdleConnTimeout = time.Duration(60) * time.Second
 	expected.DisableCompression = false
 	expected.InsecureTLS = true
+	expected.SPA = true
 
 	assert.Equal(t, expected, Config)
 }
