@@ -33,4 +33,5 @@ services:
       - CONTENT_ENCODING
       - HEALTHCHECK_PATH
       - GET_ALL_PAGES_IN_DIR=true
+      - SSR
     container_name: app
