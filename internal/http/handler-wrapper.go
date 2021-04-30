@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/pottava/aws-s3-proxy/internal/config"
+	"github.com/packethost/aws-s3-proxy/internal/config"
 )
 
 // WrapHandler wraps every handlers

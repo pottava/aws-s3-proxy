@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/pottava/aws-s3-proxy/internal/config"
+	"github.com/packethost/aws-s3-proxy/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 

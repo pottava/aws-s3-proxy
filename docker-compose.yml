@@ -2,7 +2,7 @@ version: "2.1"
 
 services:
   app:
-    image: golang:1.13.7-alpine3.11
+    image: golang:1.15-alpine3.13
     command: go run main.go
     ports:
       - 8080:80

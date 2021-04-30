@@ -1,37 +1,39 @@
-package main
+package cmd
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
 
 	"github.com/go-openapi/swag"
-	"github.com/pottava/aws-s3-proxy/internal/config"
-	"github.com/pottava/aws-s3-proxy/internal/controllers"
-	common "github.com/pottava/aws-s3-proxy/internal/http"
-	"github.com/pottava/aws-s3-proxy/internal/service"
+	"github.com/packethost/aws-s3-proxy/internal/config"
+	"github.com/packethost/aws-s3-proxy/internal/controllers"
+	common "github.com/packethost/aws-s3-proxy/internal/http"
+	"github.com/packethost/aws-s3-proxy/internal/service"
 )
 
-var (
-	ver    = "dev"
-	commit string
-	date   string
-)
+var serveCmd = &cobra.Command{
+	Use:   "serve",
+	Short: "A brief description of your command",
+	Long: `A longer description that spans multiple lines and likely contains examples
+and usage of using your command. For example:
+Cobra is a CLI library for Go that empowers applications.
+This application is a tool to generate the needed files
+to quickly create a Cobra application.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		serve()
+	},
+}
 
-func main() {
+func init() {
+	rootCmd.AddCommand(serveCmd)
+}
+
+func serve() {
 	validateAwsConfigurations()
 
 	http.Handle("/", common.WrapHandler(controllers.AwsS3))
-
-	http.HandleFunc("/--version", func(w http.ResponseWriter, r *http.Request) {
-		if len(commit) > 0 && len(date) > 0 {
-			fmt.Fprintf(w, "%s-%s (built at %s)\n", ver, commit, date)
-			return
-		}
-		fmt.Fprintln(w, ver)
-	})
 
 	// Listen & Serve
 	addr := net.JoinHostPort(config.Config.Host, config.Config.Port)

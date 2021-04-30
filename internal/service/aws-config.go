@@ -6,7 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/pottava/aws-s3-proxy/internal/config"
+	"github.com/packethost/aws-s3-proxy/internal/config"
 )
 
 func awsSession(region *string) *session.Session {

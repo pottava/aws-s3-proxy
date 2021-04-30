@@ -15,8 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/go-openapi/swag"
-	"github.com/pottava/aws-s3-proxy/internal/config"
-	"github.com/pottava/aws-s3-proxy/internal/service"
+	"github.com/packethost/aws-s3-proxy/internal/config"
+	"github.com/packethost/aws-s3-proxy/internal/service"
 )
 
 // AwsS3 handles requests for Amazon S3

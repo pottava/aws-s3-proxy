@@ -3,7 +3,7 @@ package service
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/pottava/aws-s3-proxy/internal/config"
+	"github.com/packethost/aws-s3-proxy/internal/config"
 )
 
 // S3get returns a specified object from Amazon S3

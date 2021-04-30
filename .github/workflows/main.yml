@@ -16,9 +16,4 @@ jobs:
     - uses: actions/checkout@v1
       with:
         fetch-depth: 1
-    - name: Build & Push
-      run: |
-        docker login docker.pkg.github.com -u owner -p ${{ secrets.GITHUB_TOKEN }}
-        docker build -t $IMAGE_NAME docker/linux/2.0/
-        docker push $IMAGE_NAME
     timeout-minutes: 10
