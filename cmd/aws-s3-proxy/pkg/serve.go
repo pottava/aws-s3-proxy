@@ -127,7 +127,7 @@ func initConfig() {
 	}
 
 	// Check for ENV variables set
-	// All ENV vars will be prefixed with "BENDER_"
+	// All ENV vars will be prefixed with "S3_PROXY_"
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.SetEnvPrefix("s3-proxy")
 	viper.AutomaticEnv() // read in environment variables that match
