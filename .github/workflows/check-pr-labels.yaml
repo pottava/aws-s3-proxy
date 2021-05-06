@@ -1,0 +1,14 @@
+name: Check PR required labels and comment
+
+on:
+  pull_request:
+    types: [opened, labeled, unlabeled, synchronize]
+
+jobs:
+  check-pr-label-and-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: yashhy/pr-label-check-and-comment-action@master
+        with:
+          required_labels: 'major, minor, patch' 
+          GITHUB_TOKEN: '${{secrets.GITHUB_TOKEN}}'
