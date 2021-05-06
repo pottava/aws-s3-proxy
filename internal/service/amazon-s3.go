@@ -42,7 +42,7 @@ func (c client) S3listObjects(bucket, prefix string) (*s3.ListObjectsOutput, err
 		func(page *s3.ListObjectsOutput, lastPage bool) bool {
 			result.CommonPrefixes = append(result.CommonPrefixes, page.CommonPrefixes...)
 			result.Contents = append(result.Contents, page.Contents...)
-			return len(page.Contents) == 1000
+			return len(page.Contents) == 1000 // nolint:gomnd
 		})
 
 	return result, err
