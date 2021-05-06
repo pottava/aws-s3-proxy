@@ -2,13 +2,10 @@ package http
 
 import (
 	"encoding/base64"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/packethost/aws-s3-proxy/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,38 +39,6 @@ func TestAuthMatch(t *testing.T) {
 	req.Header.Set("Authorization", "Basic "+basicAuth(username, password))
 
 	assert.True(t, auth(req, username, password))
-}
-
-func TestWithValidJWT(t *testing.T) {
-	username := "user"
-	password := "pass"
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": username,
-		"password": password,
-	})
-	tokenString, _ := token.SignedString([]byte("secret"))
-	c := config.Config
-	c.JwtSecretKey = "secret"
-	req := httptest.NewRequest(http.MethodGet, sample, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", tokenString))
-
-	assert.True(t, isValidJwt(req))
-}
-
-func TestWithoutValidJWT(t *testing.T) {
-	username := "user"
-	password := "pass"
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": username,
-		"password": password,
-	})
-	tokenString, _ := token.SignedString([]byte("secret"))
-	c := config.Config
-	c.JwtSecretKey = "foo"
-	req := httptest.NewRequest(http.MethodGet, sample, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", tokenString))
-
-	assert.False(t, isValidJwt(req))
 }
 
 func TestHeaderWithValue(t *testing.T) {

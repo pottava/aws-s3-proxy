@@ -1,11 +1,12 @@
 module github.com/packethost/aws-s3-proxy
 
-go 1.15
+go 1.16
 
 require (
 	github.com/aws/aws-sdk-go v1.38.29
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-openapi/swag v0.19.15
+	github.com/gorilla/mux v1.8.0
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sirupsen/logrus v1.2.0
