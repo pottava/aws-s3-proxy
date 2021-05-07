@@ -158,27 +158,30 @@ func serve() {
 		logger.Fatalf("failed to set GOMAXPROCS: %v", err)
 	}
 
+	// This maps the viper values to the Config object
 	config.Load()
 
-	// Listen & Serve
-	addr := net.JoinHostPort(config.Config.ListenAddress, config.Config.ListenPort)
-	logger.Infof("[service] listening on %s", addr)
-	logger.Infof("[config] Proxy to %v", config.Config.S3Bucket)
-	logger.Infof("[config] AWS Region: %v", config.Config.AwsRegion)
-
+	// A gorilla/mux router is used to allow for more control
 	router := mux.NewRouter()
 	router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3)).Methods("GET")
 
-	srv := &http.Server{
+	server := &http.Server{
 		Handler: router,
-		Addr:    addr,
+		Addr:    net.JoinHostPort(config.Config.ListenAddress, config.Config.ListenPort),
 	}
 
+	// Set up signal channel for graceful shut down
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
+	// Listen & Serve
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		logger.Infof("[service] listening on %s", server.Addr)
+		logger.Infof("[config] Proxy to %v", config.Config.S3Bucket)
+		logger.Infof("[config] AWS Region: %v", config.Config.AwsRegion)
+
+		err := server.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatalf("failed starting the server: %s", err.Error())
 		}
 	}()
@@ -186,11 +189,15 @@ func serve() {
 	<-shutdown
 	logger.Info("Shutting down")
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(600)*time.Second) // nolint:gomnd // TODO: decide real time
+	// Create a context to allow the server to provide deadline before shutting down
+	// TODO: decide real time so clients don't get interrupted
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(600)*time.Second) // nolint:gomnd
 
-	defer func() { cancel() }()
+	defer func() {
+		cancel()
+	}()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		logger.Errorf("Failed graceful shutdown", err)
 	}
 }
