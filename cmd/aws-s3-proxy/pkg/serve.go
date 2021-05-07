@@ -1,24 +1,25 @@
 package cmd
 
 import (
-	"fmt"
-	"log"
+	"context"
+	"errors"
 	"net"
 	"net/http"
 	"os"
-	"strings"
+	"os/signal"
+	"syscall"
 	"time"
 
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/automaxprocs/maxprocs"
 
 	"github.com/packethost/aws-s3-proxy/internal/config"
 	"github.com/packethost/aws-s3-proxy/internal/controllers"
 	common "github.com/packethost/aws-s3-proxy/internal/http"
 )
 
-var cfgFile string
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "serve the s3 proxy",
@@ -28,112 +29,168 @@ var serveCmd = &cobra.Command{
 }
 
 func init() {
+	rootCmd.AddCommand(serveCmd)
+
 	var (
 		idleConnTimeout        int
 		guessBucketTimeout     int
 		directoryListingFormat bool
 	)
 
-	c := config.Config
 	// Basic configs
-	cobra.OnInitialize(initConfig)
-	serveCmd.PersistentFlags().BoolVar(&c.AccessLog, "access-log", false, "toggle access log")
-	serveCmd.PersistentFlags().BoolVar(&c.AllPagesInDir, "get-all-pages-in-dir", false, "toggle getting all pages in directories")
-	serveCmd.PersistentFlags().BoolVar(&c.ContentEncoding, "content-access", true, "toggle content encoding")
-	serveCmd.PersistentFlags().BoolVar(&c.DirectoryListing, "directory-listing", false, "toggle directory listing")
-	serveCmd.PersistentFlags().BoolVar(&c.DisableCompression, "disable-compression", true, "toggle compression")
-	serveCmd.PersistentFlags().BoolVar(&c.DisableUpsteamSSL, "disable-upstream-ssl", false, "toggle tls for the aws-sdk")
-	serveCmd.PersistentFlags().StringVar(&c.HTTPCacheControl, "http-cache-control", "", "overrides S3's HTTP `Cache-Control` header")
-	serveCmd.PersistentFlags().StringVar(&c.HTTPExpires, "http-expires", "", "overrides S3's HTTP `Expires` header")
-	serveCmd.PersistentFlags().StringVar(&c.BasicAuthUser, "basic-auth-user", "", "username for basic auth")
-	serveCmd.PersistentFlags().StringVar(&c.SslCert, "ssl-cert-path", "", "path to ssl cert")
-	serveCmd.PersistentFlags().StringVar(&c.SslKey, "ssl-key-path", "", "path to ssl key")
-	serveCmd.PersistentFlags().StringVar(&c.StripPath, "strip-path", "", "strip path prefix")
-	serveCmd.PersistentFlags().StringVar(&c.CorsAllowOrigin, "cors-allow-origin", "", "CORS: a URI that may access the resource")
-	serveCmd.PersistentFlags().StringVar(&c.CorsAllowMethods, "cors-allow-methods", "", "CORS: comma-delimited list of the allowed - https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html")
-	serveCmd.PersistentFlags().StringVar(&c.CorsAllowHeaders, "cors-allow-headers", "", "CORS:Comma-delimited list of the supported request headers")
-	serveCmd.PersistentFlags().BoolVar(&c.InsecureTLS, "insecure-tls", false, "toggle insecure tls")
-	serveCmd.PersistentFlags().StringVar(&c.HealthCheckPath, "healthcheck-path", "", "path for healthcheck")
-	serveCmd.PersistentFlags().Int64Var(&c.CorsMaxAge, "cors-max-age", 600, "CORS: max age in seconds")
-	serveCmd.PersistentFlags().IntVar(&c.MaxIdleConns, "max-idle-connections", 150, "max idle connections")
-	serveCmd.PersistentFlags().StringVar(&c.Host, "listen-address", "::1", "host address to listen on")
-	serveCmd.PersistentFlags().StringVar(&c.IndexDocument, "index-document", "index.html", "the index document for static website")
-	serveCmd.PersistentFlags().StringVar(&c.Port, "list-port", "21080", "port to listen on")
-	serveCmd.PersistentFlags().StringVar(&c.S3Bucket, "upstream-bucket", "", "upstream s3 bucket")
-	serveCmd.PersistentFlags().StringVar(&c.S3KeyPrefix, "upstream-key-prefix", "", "upstream s3 path/key prefix")
-	serveCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.aws-s3-proxy.yaml)")
+	serveCmd.Flags().BoolP("access-log", "", false, "toggle access log")
+	viperBindFlag("accesslog", serveCmd.Flags().Lookup("access-log"))
 
-	c.BasicAuthPass = viper.GetString("basic-auth-pass")
+	serveCmd.Flags().BoolP("get-all-pages-in-dir", "", false, "toggle getting all pages in directories")
+	viperBindFlag("allpagesindir", serveCmd.Flags().Lookup("get-all-pages-in-dir"))
+
+	serveCmd.Flags().BoolP("content-encoding", "", true, "toggle content encoding")
+	viperBindFlag("contentencoding", serveCmd.Flags().Lookup("content-encoding"))
+
+	serveCmd.Flags().BoolP("directory-listing", "", false, "toggle directory listing")
+	viperBindFlag("directorylisting", serveCmd.Flags().Lookup("directory-listing"))
+
+	serveCmd.Flags().BoolP("disable-compression", "", true, "toggle compression")
+	viperBindFlag("disablecompression", serveCmd.Flags().Lookup("disable-compression"))
+
+	serveCmd.Flags().BoolP("disable-upstream-ssl", "", false, "toggle tls for the aws-sdk")
+	viperBindFlag("disableupstreamssl", serveCmd.Flags().Lookup("disable-upstream-ssl"))
+
+	serveCmd.Flags().BoolP("insecure-tls", "", false, "toggle insecure tls")
+	viperBindFlag("insecuretls", serveCmd.Flags().Lookup("insecure-tls"))
+
+	serveCmd.Flags().Int64P("cors-max-age", "", 600, "CORS: max age in seconds")
+	viperBindFlag("corsmaxage", serveCmd.Flags().Lookup("cors-max-age"))
+
+	serveCmd.Flags().IntP("max-idle-connections", "", 150, "max idle connections")
+	viperBindFlag("maxidleconnections", serveCmd.Flags().Lookup("max-idle-connections"))
+
+	serveCmd.Flags().StringP("basic-auth-user", "", "", "username for basic auth")
+	viperBindFlag("basicauthuser", serveCmd.Flags().Lookup("basic-auth-user"))
+
+	serveCmd.Flags().StringP("cors-allow-headers", "", "", "CORS: Comma-delimited list of the supported request headers")
+	viperBindFlag("corsallowheaders", serveCmd.Flags().Lookup("cors-allow-headers"))
+
+	serveCmd.Flags().StringP("cors-allow-methods", "", "", "CORS: comma-delimited list of the allowed - https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html")
+	viperBindFlag("corsallowmethods", serveCmd.Flags().Lookup("cors-allow-methods"))
+
+	serveCmd.Flags().StringP("cors-allow-origin", "", "", "CORS: a URI that may access the resource")
+	viperBindFlag("corsalloworigin", serveCmd.Flags().Lookup("cors-allow-origin"))
+
+	serveCmd.Flags().StringP("healthcheck-path", "", "", "path for healthcheck")
+	viperBindFlag("healthcheckpath", serveCmd.Flags().Lookup("healthcheck-path"))
+
+	serveCmd.Flags().StringP("listen-address", "", "::1", "host address to listen on")
+	viperBindFlag("listenaddress", serveCmd.Flags().Lookup("listen-address"))
+
+	serveCmd.Flags().StringP("listen-port", "", "21080", "port to listen on")
+	viperBindFlag("listenport", serveCmd.Flags().Lookup("listen-port"))
+
+	serveCmd.Flags().StringP("http-cache-control", "", "", "overrides S3's HTTP `Cache-Control` header")
+	viperBindFlag("httpcachecontrol", serveCmd.Flags().Lookup("http-cache-control"))
+
+	serveCmd.Flags().StringP("http-expires", "", "", "overrides S3's HTTP `Expires` header")
+	viperBindFlag("httpexpires", serveCmd.Flags().Lookup("http-expires"))
+
+	serveCmd.Flags().StringP("index-document", "", "index.html", "the index document for static website")
+	viperBindFlag("indexdocument", serveCmd.Flags().Lookup("index-document"))
+
+	serveCmd.Flags().StringP("upstream-bucket", "", "", "upstream s3 bucket")
+	viperBindFlag("s3bucket", serveCmd.Flags().Lookup("upstream-bucket"))
+
+	serveCmd.Flags().StringP("upstream-key-prefix", "", "", "upstream s3 path/key prefix")
+	viperBindFlag("s3prefix", serveCmd.Flags().Lookup("upstream-key-prefix"))
+
+	serveCmd.Flags().StringP("ssl-cert-path", "", "", "path to ssl cert")
+	viperBindFlag("sslcert", serveCmd.Flags().Lookup("ssl-cert-path"))
+
+	serveCmd.Flags().StringP("ssl-key-path", "", "", "path to ssl key")
+	viperBindFlag("sslkey", serveCmd.Flags().Lookup("ssl-key-path"))
+
+	serveCmd.Flags().StringP("strip-path", "", "", "strip path prefix")
+	viperBindFlag("strippath", serveCmd.Flags().Lookup("strip-path"))
+
+	if err := serveCmd.MarkFlagRequired("upstream-bucket"); err != nil {
+		logger.Fatal(err)
+	}
+
+	if len(os.Getenv("S3_PROXY_BASIC_AUTH_PASS")) != 0 {
+		viper.Set("basicauthpass", os.Getenv("S3_PROXY_BASIC_AUTH_PASS"))
+	}
 
 	// Configs that need transformation
-	serveCmd.PersistentFlags().BoolVar(&directoryListingFormat, "directory-listing-format", false, "toggle directory listing spider formatted")
+	serveCmd.Flags().BoolVar(&directoryListingFormat, "directory-listing-format", false, "toggle directory listing spider formatted")
 
 	if directoryListingFormat {
-		c.DirListingFormat = "html"
+		viper.Set("directorylistingformat", "html")
 	}
 
-	serveCmd.PersistentFlags().IntVar(&idleConnTimeout, "idle-connection-timeout", 10, "idle connection timeout in seconds")
-	c.IdleConnTimeout = time.Duration(idleConnTimeout) * time.Second
+	serveCmd.Flags().IntP("idle-connection-timeout", "", 10, "idle connection timeout in seconds")
+	viper.Set("idleconntimeout", time.Duration(idleConnTimeout)*time.Second)
 
-	serveCmd.PersistentFlags().IntVar(&guessBucketTimeout, "guess-bucket-timeout", 10, "timeout, in seconds, for guessing bucket region")
-	c.GuessBucketTimeout = time.Duration(guessBucketTimeout) * time.Second
+	serveCmd.Flags().IntP("guess-bucket-timeout", "", 10, "timeout, in seconds, for guessing bucket region")
+	viper.Set("guessbuckettimeout", time.Duration(guessBucketTimeout)*time.Second)
 
 	// Configs with default AWS overrides
-	serveCmd.PersistentFlags().StringVar(&c.AwsAPIEndpoint, "aws-api-endpoint", "", "AWS API Endpoint")
+	serveCmd.Flags().StringP("aws-api-endpoint", "", "", "AWS API Endpoint")
+	viperBindFlag("awsapiendpoint", serveCmd.Flags().Lookup("aws-api-endpoint"))
 
 	if len(os.Getenv("AWS_API_ENDPOINT")) != 0 {
-		c.AwsAPIEndpoint = os.Getenv("AWS_API_ENDPOINT")
+		viper.Set("awsapiendpoint", os.Getenv("AWS_API_ENDPOINT"))
 	}
 
-	serveCmd.PersistentFlags().StringVar(&c.AwsRegion, "aws-region", "us-east-1", "AWS region for s3, default AWS env vars will override")
+	serveCmd.Flags().StringP("aws-region", "", "us-east-1", "AWS region for s3, default AWS env vars will override")
+	viperBindFlag("awsregion", serveCmd.Flags().Lookup("aws-region"))
 
 	if len(os.Getenv("AWS_REGION")) != 0 {
-		c.AwsRegion = os.Getenv("AWS_REGION")
+		viper.Set("awsregion", os.Getenv("AWS_REGION"))
 	} else if len(os.Getenv("AWS_DEFAULT_REGION")) != 0 {
-		c.AwsRegion = os.Getenv("AWS_DEFAULT_REGION")
+		viper.Set("awsregion", os.Getenv("AWS_DEFAULT_REGION"))
 	}
-
-	rootCmd.AddCommand(serveCmd)
 }
 
 func serve() {
-	http.Handle("/", common.WrapHandler(controllers.AwsS3))
+	// Limits GOMAXPROCS in a container
+	undo, err := maxprocs.Set(maxprocs.Logger(logger.Infof))
+	defer undo()
 
-	// Listen & Serve
-	addr := net.JoinHostPort(config.Config.Host, config.Config.Port)
-	log.Printf("[service] listening on %s", addr)
-	log.Printf("[config] Proxy to %v", config.Config.S3Bucket)
-	log.Printf("[config] AWS Region: %v", config.Config.AwsRegion)
-
-	log.Fatal(http.ListenAndServe(addr, nil))
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		// Search config in home directory with name ".decuddle" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".s3-proxy")
+	if err != nil {
+		logger.Fatalf("failed to set GOMAXPROCS: %v", err)
 	}
 
-	// Check for ENV variables set
-	// All ENV vars will be prefixed with "S3_PROXY_"
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.SetEnvPrefix("s3-proxy")
-	viper.AutomaticEnv() // read in environment variables that match
+	config.Load()
 
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	// Listen & Serve
+	addr := net.JoinHostPort(config.Config.ListenAddress, config.Config.ListenPort)
+	logger.Infof("[service] listening on %s", addr)
+	logger.Infof("[config] Proxy to %v", config.Config.S3Bucket)
+	logger.Infof("[config] AWS Region: %v", config.Config.AwsRegion)
+
+	router := mux.NewRouter()
+	router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3)).Methods("GET")
+
+	srv := &http.Server{
+		Handler: router,
+		Addr:    addr,
+	}
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Fatalf("failed starting the server: %s", err.Error())
+		}
+	}()
+
+	<-shutdown
+	logger.Info("Shutting down")
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(600)*time.Second) // nolint:gomnd // TODO: decide real time
+
+	defer func() { cancel() }()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Errorf("Failed graceful shutdown", err)
 	}
 }

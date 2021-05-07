@@ -1,17 +1,14 @@
 package config
 
 import (
+	"log"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 // Config represents its configurations
-var (
-	Config *config
-)
-
-func init() {
-	Setup()
-}
+var Config *config
 
 type config struct { // nolint
 	AccessLog          bool          // ACCESS_LOG
@@ -31,15 +28,15 @@ type config struct { // nolint
 	DisableUpsteamSSL  bool          // Disables SSL in the aws-sdk
 	GuessBucketTimeout time.Duration // Used by region helper
 	HealthCheckPath    string        // HEALTHCHECK_PATH
-	Host               string        // APP_HOST
 	HTTPCacheControl   string        // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
 	HTTPExpires        string        // HTTP_EXPIRES (Thu, 01 Dec 1994 16:00:00 GMT ...)
 	IdleConnTimeout    time.Duration // IDLE_CONNECTION_TIMEOUT
 	IndexDocument      string        // INDEX_DOCUMENT
 	InsecureTLS        bool          // Disables TLS validation on request endpoints.
 	JwtSecretKey       string        // JWT_SECRET_KEY
+	ListenAddress      string        //
+	ListenPort         string        // APP_PORT
 	MaxIdleConns       int           // MAX_IDLE_CONNECTIONS
-	Port               string        // APP_PORT
 	S3Bucket           string        // AWS_S3_BUCKET
 	S3KeyPrefix        string        // AWS_S3_KEY_PREFIX
 	SslCert            string        // SSL_CERT_PATH
@@ -47,7 +44,9 @@ type config struct { // nolint
 	StripPath          string        // STRIP_PATH
 }
 
-// Setup configurations with environment variables
-func Setup() {
-	Config = &config{}
+// Load configurations and map to the config struct
+func Load() {
+	if err := viper.Unmarshal(&Config); err != nil {
+		log.Fatalf("Unable to decode into struct, %v", err)
+	}
 }

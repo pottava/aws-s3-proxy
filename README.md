@@ -19,6 +19,8 @@ AWS_SECRET_ACCESS_KEY     | AWS `secret key` for API access.                  | 
 AWS_API_ENDPOINT          | The endpoint for AWS API for local development.   |          | -
 S3_PROXY_BASIC_AUTH_PASS  | Password for basic authentication.                |          | -
 
+Other environment variables can be set by `S3_PROXY_` and uppercase CLI options without hyphens or underscores, so `--listen-port` becomes `S3_PROXY_LISTENPORT`.
+
 ### Set CLI options
 
 ```bash
@@ -35,10 +37,10 @@ Flags:
       --basic-auth-user string             username for basic auth
       --config string                      config file (default is $HOME/.aws-s3-proxy.yaml)
       --content-access                     toggle content encoding (default true)
-      --cors-allow-headers string          CORS:Comma-delimited list of the supported request headers
+      --cors-allow-headers string          CORS: Comma-delimited list of the supported request headers
       --cors-allow-methods string          CORS: comma-delimited list of the allowed - https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
       --cors-allow-origin string           CORS: a URI that may access the resource
-      --cors-max-age int                   cors max age in seconds (default 600)
+      --cors-max-age int                   CORS: max age in seconds (default 600)
       --directory-listing                  toggle directory listing
       --directory-listing-format           toggle directory listing spider formatted
       --disable-compression                toggle compression (default true)
@@ -52,7 +54,7 @@ Flags:
       --idle-connection-timeout int        idle connection timeout in seconds (default 10)
       --index-document string              the index document for static website (default "index.html")
       --insecure-tls                       toggle insecure tls
-      --list-port string                   port to listen on (default "21080")
+      --listen-port string                   port to listen on (default "21080")
       --listen-address string              host address to listen on (default "::1")
       --max-idle-connections int           max idle connections (default 150)
       --ssl-cert-path string               path to ssl cert
