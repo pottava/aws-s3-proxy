@@ -12,7 +12,7 @@ import (
 
 func awsSession(region *string) *session.Session {
 	cfg := &aws.Config{
-		DisableSSL: aws.Bool(config.Config.DisableUpsteamSSL),
+		DisableSSL: aws.Bool(config.Config.DisableUpstreamSSL),
 		HTTPClient: &http.Client{
 			Transport: &http.Transport{
 				Proxy:              http.ProxyFromEnvironment,

@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"compress/zlib"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -35,17 +34,22 @@ func WrapHandler(handler func(w http.ResponseWriter, r *http.Request)) http.Hand
 			w.Header().Set("Access-Control-Allow-Headers", c.CorsAllowHeaders)
 			w.Header().Set("Access-Control-Max-Age", strconv.FormatInt(c.CorsMaxAge, 10))
 		}
+		proc := time.Now()
+		addr := r.RemoteAddr
 
 		// BasicAuth
 		if (len(c.BasicAuthUser) > 0) && (len(c.BasicAuthPass) > 0) &&
 			!auth(r, c.BasicAuthUser, c.BasicAuthPass) {
 			w.Header().Set("WWW-Authenticate", `Basic realm="REALM"`)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+
+			c.Logger.Infof("[%s] %.3f %d %s %s",
+				addr, time.Since(proc).Seconds(),
+				http.StatusUnauthorized, r.Method, r.URL)
+
 			return
 		}
 
-		proc := time.Now()
-		addr := r.RemoteAddr
 		if ip, found := header(r, "X-Forwarded-For"); found {
 			addr = ip
 		}
@@ -78,7 +82,7 @@ func WrapHandler(handler func(w http.ResponseWriter, r *http.Request)) http.Hand
 
 		// AccessLog
 		if c.AccessLog {
-			log.Printf("[%s] %.3f %d %s %s",
+			c.Logger.Infof("[%s] %.3f %d %s %s",
 				addr, time.Since(proc).Seconds(),
 				writer.status, r.Method, r.URL)
 		}

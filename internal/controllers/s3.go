@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"reflect"
@@ -21,8 +22,8 @@ import (
 	"github.com/packethost/aws-s3-proxy/internal/service"
 )
 
-// AwsS3 handles requests for Amazon S3
-func AwsS3(w http.ResponseWriter, r *http.Request) {
+// AwsS3Get handles download requests
+func AwsS3Get(w http.ResponseWriter, r *http.Request) {
 	c := config.Config
 
 	// Strip the prefix, if it's present.
@@ -84,6 +85,44 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 	setHeadersFromAwsResponse(w, obj, c.HTTPCacheControl, c.HTTPExpires)
 
 	io.Copy(w, obj.Body) // nolint
+}
+
+// AwsS3Put handles upload requests
+func AwsS3Put(w http.ResponseWriter, r *http.Request) {
+	c := config.Config
+
+	// Strip the prefix, if it's present.
+	path := r.URL.Path
+	if len(c.StripPath) > 0 {
+		path = strings.TrimPrefix(path, c.StripPath)
+	}
+
+	client := service.NewClient(r.Context(), aws.String(config.Config.AwsRegion))
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("error reading body: %s", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+	defer r.Body.Close()
+	// Put a S3 object
+	obj, err := client.S3put(c.S3Bucket, c.S3KeyPrefix+path, b)
+	if err != nil {
+		code, message := toHTTPError(err)
+		log.Printf("error getting s3 object:[%d] %s", code, message)
+		http.Error(w, message, code)
+
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	setStrHeader(w, "ETag", obj.ETag)
+	setStrHeader(w, "VersionID", obj.VersionID)
+	setStrHeader(w, "UploadID", &obj.UploadID)
+	setStrHeader(w, "Location", &obj.Location)
+
 }
 
 func replacePathWithSymlink(client service.AWS, bucket, symlinkPath string) (*string, error) {

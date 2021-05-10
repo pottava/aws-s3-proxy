@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 // Config represents its configurations
@@ -25,7 +26,7 @@ type config struct { // nolint
 	DirectoryListing   bool          // DIRECTORY_LISTINGS
 	DirListingFormat   string        // DIRECTORY_LISTINGS_FORMAT
 	DisableCompression bool          // DISABLE_COMPRESSION
-	DisableUpsteamSSL  bool          // Disables SSL in the aws-sdk
+	DisableUpstreamSSL bool          // Disables SSL in the aws-sdk
 	GuessBucketTimeout time.Duration // Used by region helper
 	HealthCheckPath    string        // HEALTHCHECK_PATH
 	HTTPCacheControl   string        // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
@@ -36,17 +37,20 @@ type config struct { // nolint
 	JwtSecretKey       string        // JWT_SECRET_KEY
 	ListenAddress      string        //
 	ListenPort         string        // APP_PORT
-	MaxIdleConns       int           // MAX_IDLE_CONNECTIONS
-	S3Bucket           string        // AWS_S3_BUCKET
-	S3KeyPrefix        string        // AWS_S3_KEY_PREFIX
-	SslCert            string        // SSL_CERT_PATH
-	SslKey             string        // SSL_KEY_PATH
-	StripPath          string        // STRIP_PATH
+	Logger             *zap.SugaredLogger
+	MaxIdleConns       int    // MAX_IDLE_CONNECTIONS
+	S3Bucket           string // AWS_S3_BUCKET
+	S3KeyPrefix        string // AWS_S3_KEY_PREFIX
+	SslCert            string // SSL_CERT_PATH
+	SslKey             string // SSL_KEY_PATH
+	StripPath          string // STRIP_PATH
 }
 
 // Load configurations and map to the config struct
-func Load() {
+func Load(l *zap.SugaredLogger) {
 	if err := viper.Unmarshal(&Config); err != nil {
 		log.Fatalf("Unable to decode into struct, %v", err)
 	}
+
+	Config.Logger = l
 }

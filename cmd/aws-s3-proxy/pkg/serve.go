@@ -159,11 +159,12 @@ func serve() {
 	}
 
 	// This maps the viper values to the Config object
-	config.Load()
+	config.Load(logger)
 
 	// A gorilla/mux router is used to allow for more control
 	router := mux.NewRouter()
-	router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3)).Methods("GET")
+	router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3Get)).Methods("GET")
+	router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3Put)).Methods("POST")
 
 	server := &http.Server{
 		Handler: router,

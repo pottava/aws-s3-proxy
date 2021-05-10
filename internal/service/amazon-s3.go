@@ -1,8 +1,12 @@
 package service
 
 import (
+	"bytes"
+	"net/http"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 
 	"github.com/packethost/aws-s3-proxy/internal/config"
 )
@@ -16,6 +20,18 @@ func (c client) S3get(bucket, key string, rangeHeader *string) (*s3.GetObjectOut
 	}
 
 	return s3.New(c.Session).GetObjectWithContext(c.Context, req)
+}
+
+func (c client) S3put(bucket, key string, b []byte) (*s3manager.UploadOutput, error) {
+	up := &s3manager.UploadInput{
+		Bucket:          aws.String(bucket),
+		ContentEncoding: aws.String(http.DetectContentType(b)),
+		ACL:             aws.String("public-read"),
+		Key:             aws.String(key),
+		Body:            bytes.NewReader(b),
+	}
+
+	return s3manager.NewUploader(c.Session).UploadWithContext(c.Context, up)
 }
 
 // S3listObjects returns a list of s3 objects
