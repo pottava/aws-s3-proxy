@@ -122,7 +122,6 @@ func AwsS3Put(w http.ResponseWriter, r *http.Request) {
 	setStrHeader(w, "VersionID", obj.VersionID)
 	setStrHeader(w, "UploadID", &obj.UploadID)
 	setStrHeader(w, "Location", &obj.Location)
-
 }
 
 func replacePathWithSymlink(client service.AWS, bucket, symlinkPath string) (*string, error) {
