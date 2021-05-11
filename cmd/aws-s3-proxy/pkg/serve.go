@@ -38,76 +38,79 @@ func init() {
 	)
 
 	// Basic configs
-	serveCmd.Flags().BoolP("access-log", "", false, "toggle access log")
+	serveCmd.Flags().Bool("access-log", false, "toggle access log")
 	viperBindFlag("accesslog", serveCmd.Flags().Lookup("access-log"))
 
-	serveCmd.Flags().BoolP("get-all-pages-in-dir", "", false, "toggle getting all pages in directories")
+	serveCmd.Flags().Bool("get-all-pages-in-dir", false, "toggle getting all pages in directories")
 	viperBindFlag("allpagesindir", serveCmd.Flags().Lookup("get-all-pages-in-dir"))
 
-	serveCmd.Flags().BoolP("content-encoding", "", true, "toggle content encoding")
+	serveCmd.Flags().Bool("content-encoding", true, "toggle content encoding")
 	viperBindFlag("contentencoding", serveCmd.Flags().Lookup("content-encoding"))
 
-	serveCmd.Flags().BoolP("directory-listing", "", false, "toggle directory listing")
+	serveCmd.Flags().Bool("directory-listing", false, "toggle directory listing")
 	viperBindFlag("directorylisting", serveCmd.Flags().Lookup("directory-listing"))
 
-	serveCmd.Flags().BoolP("disable-compression", "", true, "toggle compression")
+	serveCmd.Flags().Bool("disable-compression", true, "toggle compression")
 	viperBindFlag("disablecompression", serveCmd.Flags().Lookup("disable-compression"))
 
-	serveCmd.Flags().BoolP("disable-upstream-ssl", "", false, "toggle tls for the aws-sdk")
+	serveCmd.Flags().Bool("disable-upstream-ssl", false, "toggle tls for the aws-sdk")
 	viperBindFlag("disableupstreamssl", serveCmd.Flags().Lookup("disable-upstream-ssl"))
 
-	serveCmd.Flags().BoolP("insecure-tls", "", false, "toggle insecure tls")
+	serveCmd.Flags().Bool("enable-upload", false, "toggle upload, requires auth")
+	viperBindFlag("enableupload", serveCmd.Flags().Lookup("enable-upload"))
+
+	serveCmd.Flags().Bool("insecure-tls", false, "toggle insecure tls")
 	viperBindFlag("insecuretls", serveCmd.Flags().Lookup("insecure-tls"))
 
-	serveCmd.Flags().Int64P("cors-max-age", "", 600, "CORS: max age in seconds")
+	serveCmd.Flags().Int64("cors-max-age", 600, "CORS: max age in seconds")
 	viperBindFlag("corsmaxage", serveCmd.Flags().Lookup("cors-max-age"))
 
-	serveCmd.Flags().IntP("max-idle-connections", "", 150, "max idle connections")
+	serveCmd.Flags().Int("max-idle-connections", 150, "max idle connections")
 	viperBindFlag("maxidleconnections", serveCmd.Flags().Lookup("max-idle-connections"))
 
-	serveCmd.Flags().StringP("basic-auth-user", "", "", "username for basic auth")
+	serveCmd.Flags().String("basic-auth-user", "", "username for basic auth")
 	viperBindFlag("basicauthuser", serveCmd.Flags().Lookup("basic-auth-user"))
 
-	serveCmd.Flags().StringP("cors-allow-headers", "", "", "CORS: Comma-delimited list of the supported request headers")
+	serveCmd.Flags().String("cors-allow-headers", "", "CORS: Comma-delimited list of the supported request headers")
 	viperBindFlag("corsallowheaders", serveCmd.Flags().Lookup("cors-allow-headers"))
 
-	serveCmd.Flags().StringP("cors-allow-methods", "", "", "CORS: comma-delimited list of the allowed - https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html")
+	serveCmd.Flags().String("cors-allow-methods", "", "CORS: comma-delimited list of the allowed - https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html")
 	viperBindFlag("corsallowmethods", serveCmd.Flags().Lookup("cors-allow-methods"))
 
-	serveCmd.Flags().StringP("cors-allow-origin", "", "", "CORS: a URI that may access the resource")
+	serveCmd.Flags().String("cors-allow-origin", "", "CORS: a URI that may access the resource")
 	viperBindFlag("corsalloworigin", serveCmd.Flags().Lookup("cors-allow-origin"))
 
-	serveCmd.Flags().StringP("healthcheck-path", "", "", "path for healthcheck")
+	serveCmd.Flags().String("healthcheck-path", "", "path for healthcheck")
 	viperBindFlag("healthcheckpath", serveCmd.Flags().Lookup("healthcheck-path"))
 
-	serveCmd.Flags().StringP("listen-address", "", "::1", "host address to listen on")
+	serveCmd.Flags().String("listen-address", "::1", "host address to listen on")
 	viperBindFlag("listenaddress", serveCmd.Flags().Lookup("listen-address"))
 
-	serveCmd.Flags().StringP("listen-port", "", "21080", "port to listen on")
+	serveCmd.Flags().String("listen-port", "21080", "port to listen on")
 	viperBindFlag("listenport", serveCmd.Flags().Lookup("listen-port"))
 
-	serveCmd.Flags().StringP("http-cache-control", "", "", "overrides S3's HTTP `Cache-Control` header")
+	serveCmd.Flags().String("http-cache-control", "", "overrides S3's HTTP `Cache-Control` header")
 	viperBindFlag("httpcachecontrol", serveCmd.Flags().Lookup("http-cache-control"))
 
-	serveCmd.Flags().StringP("http-expires", "", "", "overrides S3's HTTP `Expires` header")
+	serveCmd.Flags().String("http-expires", "", "overrides S3's HTTP `Expires` header")
 	viperBindFlag("httpexpires", serveCmd.Flags().Lookup("http-expires"))
 
-	serveCmd.Flags().StringP("index-document", "", "index.html", "the index document for static website")
+	serveCmd.Flags().String("index-document", "index.html", "the index document for static website")
 	viperBindFlag("indexdocument", serveCmd.Flags().Lookup("index-document"))
 
-	serveCmd.Flags().StringP("upstream-bucket", "", "", "upstream s3 bucket")
+	serveCmd.Flags().String("upstream-bucket", "", "upstream s3 bucket")
 	viperBindFlag("s3bucket", serveCmd.Flags().Lookup("upstream-bucket"))
 
-	serveCmd.Flags().StringP("upstream-key-prefix", "", "", "upstream s3 path/key prefix")
+	serveCmd.Flags().String("upstream-key-prefix", "", "upstream s3 path/key prefix")
 	viperBindFlag("s3prefix", serveCmd.Flags().Lookup("upstream-key-prefix"))
 
-	serveCmd.Flags().StringP("ssl-cert-path", "", "", "path to ssl cert")
+	serveCmd.Flags().String("ssl-cert-path", "", "path to ssl cert")
 	viperBindFlag("sslcert", serveCmd.Flags().Lookup("ssl-cert-path"))
 
-	serveCmd.Flags().StringP("ssl-key-path", "", "", "path to ssl key")
+	serveCmd.Flags().String("ssl-key-path", "", "path to ssl key")
 	viperBindFlag("sslkey", serveCmd.Flags().Lookup("ssl-key-path"))
 
-	serveCmd.Flags().StringP("strip-path", "", "", "strip path prefix")
+	serveCmd.Flags().String("strip-path", "", "strip path prefix")
 	viperBindFlag("strippath", serveCmd.Flags().Lookup("strip-path"))
 
 	if err := serveCmd.MarkFlagRequired("upstream-bucket"); err != nil {
@@ -164,7 +167,15 @@ func serve() {
 	// A gorilla/mux router is used to allow for more control
 	router := mux.NewRouter()
 	router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3Get)).Methods("GET")
-	router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3Put)).Methods("POST")
+
+	// Require Auth for upload
+	if len(config.Config.BasicAuthPass) > 0 && len(config.Config.BasicAuthUser) > 0 &&
+		config.Config.EnableUpload {
+		router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3Put)).Methods("POST")
+	} else if !(len(config.Config.BasicAuthPass) > 0 && len(config.Config.BasicAuthUser) > 0) &&
+		config.Config.EnableUpload {
+		logger.Fatal("Set up basic auth for upload to work")
+	}
 
 	server := &http.Server{
 		Handler: router,
