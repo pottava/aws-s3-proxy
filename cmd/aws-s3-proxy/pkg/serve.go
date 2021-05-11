@@ -169,12 +169,12 @@ func serve() {
 	router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3Get)).Methods("GET")
 
 	// Require Auth for upload
-	if len(config.Config.BasicAuthPass) > 0 && len(config.Config.BasicAuthUser) > 0 &&
-		config.Config.EnableUpload {
-		router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3Put)).Methods("POST")
-	} else if !(len(config.Config.BasicAuthPass) > 0 && len(config.Config.BasicAuthUser) > 0) &&
-		config.Config.EnableUpload {
-		logger.Fatal("Set up basic auth for upload to work")
+	if config.Config.EnableUpload {
+		if len(config.Config.BasicAuthPass) > 0 && len(config.Config.BasicAuthUser) > 0 {
+			router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3Put)).Methods("POST")
+		} else {
+			logger.Fatal("Set up basic auth for upload to work")
+		}
 	}
 
 	server := &http.Server{
