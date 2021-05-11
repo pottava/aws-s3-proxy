@@ -14,16 +14,19 @@ func determineHTTPStatus(obj *s3.GetObjectOutput) int {
 			return http.StatusPartialContent
 		}
 	}
+
 	return http.StatusOK
 }
 
 func totalFileSizeEqualToContentRange(obj *s3.GetObjectOutput) bool {
 	totalSizeIsEqualToContentRange := false
+
 	if totalSize, err := strconv.ParseInt(getFileSizeAsString(obj), 10, 64); err == nil {
 		if totalSize == (*obj.ContentLength) {
 			totalSizeIsEqualToContentRange = true
 		}
 	}
+
 	return totalSizeIsEqualToContentRange
 }
 
@@ -35,5 +38,6 @@ func getFileSizeAsString(obj *s3.GetObjectOutput) string {
 	if len(s) > 1 {
 		return strings.TrimSpace(s[1])
 	}
+
 	return ""
 }

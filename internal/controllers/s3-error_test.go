@@ -14,7 +14,7 @@ func TestToHTTPError(t *testing.T) {
 	expectedCode := http.StatusInternalServerError
 	expectedMsg := "test"
 
-	code, msg := toHTTPError(errors.New(expectedMsg))
+	code, msg := toHTTPError(errors.New(expectedMsg)) //nolint:goerr113
 
 	assert.Equal(t, expectedCode, code)
 	assert.Equal(t, expectedMsg, msg)
@@ -27,7 +27,7 @@ func TestToHTTPNoSuchBucketError(t *testing.T) {
 	code, msg := toHTTPError(awserr.New(
 		s3.ErrCodeNoSuchBucket,
 		"2",
-		errors.New("1"),
+		errors.New("1"), //nolint:goerr113
 	))
 	assert.Equal(t, expectedCode, code)
 	assert.Equal(t, expectedMsg, msg)
@@ -40,7 +40,7 @@ func TestToHTTPNoSuchKeyError(t *testing.T) {
 	code, msg := toHTTPError(awserr.New(
 		s3.ErrCodeNoSuchKey,
 		"2",
-		errors.New("1"),
+		errors.New("1"), //nolint:goerr113
 	))
 	assert.Equal(t, expectedCode, code)
 	assert.Equal(t, expectedMsg, msg)
@@ -53,7 +53,7 @@ func TestToHTTPNoSuchUploadError(t *testing.T) {
 	code, msg := toHTTPError(awserr.New(
 		s3.ErrCodeNoSuchUpload,
 		"2",
-		errors.New("1"),
+		errors.New("1"), //nolint:goerr113
 	))
 	assert.Equal(t, expectedCode, code)
 	assert.Equal(t, expectedMsg, msg)

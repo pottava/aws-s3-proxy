@@ -5,12 +5,14 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 // AWS is a service to interact with original AWS services
 type AWS interface {
 	S3get(bucket, key string, rangeHeader *string) (*s3.GetObjectOutput, error)
 	S3listObjects(bucket, prefix string) (*s3.ListObjectsOutput, error)
+	S3put(bucket, key string, b []byte) (*s3manager.UploadOutput, error)
 }
 
 type client struct {

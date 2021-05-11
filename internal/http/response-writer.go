@@ -15,6 +15,7 @@ func (c *custom) Write(b []byte) (int, error) {
 	if c.Header().Get("Content-Type") == "" {
 		c.Header().Set("Content-Type", http.DetectContentType(b))
 	}
+
 	return c.Writer.Write(b)
 }
 

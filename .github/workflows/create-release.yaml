@@ -1,0 +1,46 @@
+
+name: Release
+
+on:
+  pull_request:
+    paths:
+      - go.mod
+      - go.sum
+      - '**.go'
+    types:
+      - closed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute next SemVer tag
+        id: semver
+        uses: K-Phoen/semver-release-action@master
+        with:
+          release_branch: main
+          release_strategy: none
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - uses: actions/checkout@master
+        with:
+          ref: ${{ github.base_ref }}
+      
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: quay.io
+          repository: packet/aws-s3-proxy
+          tags: ${{ steps.semver.outputs.tag }}
+          
+      - name: Create release
+        id: tag
+        uses: K-Phoen/semver-release-action@master
+        with:
+          release_branch: main
+          tag: ${{ steps.semver.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

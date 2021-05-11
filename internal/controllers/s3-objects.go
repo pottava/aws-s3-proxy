@@ -23,6 +23,7 @@ func (s s3objects) Less(i, j int) bool {
 			return false
 		}
 	}
+
 	irs := []rune(s[i])
 	jrs := []rune(s[j])
 
@@ -30,6 +31,7 @@ func (s s3objects) Less(i, j int) bool {
 	if max > len(jrs) {
 		max = len(jrs)
 	}
+
 	for idx := 0; idx < max; idx++ {
 		ir := irs[idx]
 		jr := jrs[idx]
@@ -39,9 +41,11 @@ func (s s3objects) Less(i, j int) bool {
 		if irl != jrl {
 			return irl < jrl
 		}
+
 		if ir != jr {
 			return ir < jr
 		}
 	}
+
 	return false
 }
