@@ -7,6 +7,12 @@ You don't need to configure a Bucket for `Website Hosting`.
 
 http://this-proxy.com/access/ -> s3://bucket/access/index.html
 
+If auth is enable, you can upload to the bucket (assuming your AWS credentials permit it). Strongly recommended to have SSL enabled for this, as the basic auth will be sent in plain text otherwise
+
+```bash
+ curl http://[::1]:21080/disco.gif -u${AUTH} --data-binary @disco.gif
+ ```
+
 ## Usage
 
 ### Set environment variables
@@ -35,8 +41,7 @@ Flags:
       --aws-api-endpoint string            AWS API Endpoint
       --aws-region string                  AWS region for s3, default AWS env vars will override (default "us-east-1")
       --basic-auth-user string             username for basic auth
-      --config string                      config file (default is $HOME/.aws-s3-proxy.yaml)
-      --content-access                     toggle content encoding (default true)
+      --content-encoding                   toggle content encoding (default true)
       --cors-allow-headers string          CORS: Comma-delimited list of the supported request headers
       --cors-allow-methods string          CORS: comma-delimited list of the allowed - https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
       --cors-allow-origin string           CORS: a URI that may access the resource
@@ -45,6 +50,7 @@ Flags:
       --directory-listing-format           toggle directory listing spider formatted
       --disable-compression                toggle compression (default true)
       --disable-upstream-ssl               toggle tls for the aws-sdk
+      --enable-upload                      toggle upload, requires auth
       --get-all-pages-in-dir               toggle getting all pages in directories
       --guess-bucket-timeout int           timeout, in seconds, for guessing bucket region (default 10)
       --healthcheck-path string            path for healthcheck
@@ -54,14 +60,19 @@ Flags:
       --idle-connection-timeout int        idle connection timeout in seconds (default 10)
       --index-document string              the index document for static website (default "index.html")
       --insecure-tls                       toggle insecure tls
-      --listen-port string                   port to listen on (default "21080")
       --listen-address string              host address to listen on (default "::1")
+      --listen-port string                 port to listen on (default "21080")
       --max-idle-connections int           max idle connections (default 150)
       --ssl-cert-path string               path to ssl cert
       --ssl-key-path string                path to ssl key
       --strip-path string                  strip path prefix
       --upstream-bucket string             upstream s3 bucket
       --upstream-key-prefix string         upstream s3 path/key prefix
+
+Global Flags:
+      --config string   config file (default is $HOME/.s3-proxy.yaml)
+      --debug           Enable debug logging
+      --pretty          Enable pretty (human readable) logging output
 ```
 
 ## Copyright and license
