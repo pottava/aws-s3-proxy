@@ -18,7 +18,7 @@ jobs:
         id: semver
         uses: K-Phoen/semver-release-action@master
         with:
-          release_branch: main
+          release_branch: master
           release_strategy: none
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
