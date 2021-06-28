@@ -54,6 +54,11 @@ func WrapHandler(handler func(w http.ResponseWriter, r *http.Request)) http.Hand
 			addr = ip
 		}
 
+		// Facility Header if set
+		if len(c.Facility) > 0 {
+			w.Header().Add("Facility", c.Facility)
+		}
+
 		// Content-Encoding
 		ioWriter := w.(io.Writer)
 		if encodings, found := header(r, "Accept-Encoding"); found && c.ContentEncoding {

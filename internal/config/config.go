@@ -28,6 +28,7 @@ type config struct { // nolint
 	DisableCompression bool               // DISABLE_COMPRESSION
 	DisableUpstreamSSL bool               // Disables SSL in the aws-sdk
 	EnableUpload       bool               // Toggles upload
+	Facility           string             // Location the service is running in
 	GuessBucketTimeout time.Duration      // Used by region helper
 	HealthCheckPath    string             // HEALTHCHECK_PATH
 	HTTPCacheControl   string             // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
