@@ -80,6 +80,9 @@ func init() {
 	serveCmd.Flags().String("cors-allow-origin", "", "CORS: a URI that may access the resource")
 	viperBindFlag("corsalloworigin", serveCmd.Flags().Lookup("cors-allow-origin"))
 
+	serveCmd.Flags().String("facility", "", "Location where the service is running")
+	viperBindFlag("facility", serveCmd.Flags().Lookup("facility"))
+
 	serveCmd.Flags().String("healthcheck-path", "", "path for healthcheck")
 	viperBindFlag("healthcheckpath", serveCmd.Flags().Lookup("healthcheck-path"))
 
