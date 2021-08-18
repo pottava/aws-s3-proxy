@@ -68,7 +68,7 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		code, message := toHTTPError(err)
 
-		if code == 404 && c.SPA && strings.Index(path, c.IndexDocument) == -1 {
+		if (code == 404 || code == 403) && c.SPA && strings.Index(path, c.IndexDocument) == -1 {
 
 			idx := strings.LastIndex(path, "/")
 

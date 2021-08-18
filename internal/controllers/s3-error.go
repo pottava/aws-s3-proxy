@@ -12,6 +12,8 @@ func toHTTPError(err error) (int, string) {
 		switch aerr.Code() {
 		case s3.ErrCodeNoSuchBucket, s3.ErrCodeNoSuchKey:
 			return http.StatusNotFound, aerr.Error()
+		case "AccessDenied":
+			return http.StatusForbidden, aerr.Error()
 		}
 		return http.StatusInternalServerError, aerr.Error()
 	}
