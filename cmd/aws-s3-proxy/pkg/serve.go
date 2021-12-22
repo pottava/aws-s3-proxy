@@ -253,7 +253,6 @@ func serve(ctx context.Context) {
 		logger.Infof("[config] AWS Region: %v", config.Config.AwsRegion)
 
 		router.Logger.Fatal(router.Start(addr))
-
 	}()
 
 	<-shutdown
