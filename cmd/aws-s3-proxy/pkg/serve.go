@@ -2,29 +2,35 @@ package cmd
 
 import (
 	"context"
-	"errors"
+	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/go-openapi/swag"
+	"github.com/labstack/echo-contrib/prometheus"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/automaxprocs/maxprocs"
 
 	"github.com/packethost/aws-s3-proxy/internal/config"
-	"github.com/packethost/aws-s3-proxy/internal/controllers"
-	common "github.com/packethost/aws-s3-proxy/internal/http"
+	"github.com/packethost/aws-s3-proxy/internal/service"
 )
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "serve the s3 proxy",
 	Run: func(cmd *cobra.Command, args []string) {
-		serve()
+		serve(cmd.Context())
 	},
 }
 
@@ -155,7 +161,69 @@ func init() {
 	}
 }
 
-func serve() {
+func toHTTPError(err error) (int, string) {
+	if aerr, ok := err.(awserr.Error); ok {
+		switch aerr.Code() {
+		case s3.ErrCodeNoSuchBucket, s3.ErrCodeNoSuchKey:
+			return http.StatusNotFound, aerr.Error()
+		}
+
+		log.Print("unknown s3 error")
+
+		return http.StatusInternalServerError, aerr.Error()
+	}
+
+	log.Print("unknown http error")
+
+	return http.StatusInternalServerError, err.Error()
+}
+
+func getS3File(ctx echo.Context) error {
+	c := config.Config
+
+	// Strip the prefix, if it's present.
+	path := ctx.Request().URL.Path
+	if len(c.StripPath) > 0 {
+		path = strings.TrimPrefix(path, c.StripPath)
+	}
+
+	// Range header
+	var rangeHeader *string
+	if candidate := ctx.Request().Header.Get("Range"); !swag.IsZero(candidate) {
+		rangeHeader = aws.String(candidate)
+	}
+
+	client := service.NewClient(ctx.Request().Context(), aws.String(config.Config.AwsRegion))
+
+	obj, err := client.S3get(c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
+	if err != nil {
+		code, message := toHTTPError(err)
+		log.Printf("error getting s3 object:[%d] %s", code, message)
+
+		return ctx.String(code, message)
+	}
+
+	return ctx.Stream(http.StatusOK, echo.MIMEOctetStream, obj.Body)
+}
+
+func echoRouter() *echo.Echo {
+	// A labstack/echo router
+	router := echo.New()
+
+	// Middleware
+	router.Use(middleware.Logger())
+	router.Use(middleware.Recover())
+
+	// Metrics
+	p := prometheus.NewPrometheus("echo", nil)
+	p.Use(router)
+
+	router.GET("/*", getS3File)
+
+	return router
+}
+
+func serve(ctx context.Context) {
 	// Limits GOMAXPROCS in a container
 	undo, err := maxprocs.Set(maxprocs.Logger(logger.Infof))
 	defer undo()
@@ -167,23 +235,12 @@ func serve() {
 	// This maps the viper values to the Config object
 	config.Load(logger)
 
-	// A gorilla/mux router is used to allow for more control
-	router := mux.NewRouter()
-	router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3Get)).Methods("GET")
+	router := echoRouter()
 
-	// Require Auth for upload
-	if config.Config.EnableUpload {
-		if len(config.Config.BasicAuthPass) > 0 && len(config.Config.BasicAuthUser) > 0 {
-			router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3Put)).Methods("POST")
-		} else {
-			logger.Fatal("Set up basic auth for upload to work")
-		}
-	}
-
-	server := &http.Server{
-		Handler: router,
-		Addr:    net.JoinHostPort(config.Config.ListenAddress, config.Config.ListenPort),
-	}
+	// server := &http.Server{
+	// 	Handler: router,
+	addr := net.JoinHostPort(config.Config.ListenAddress, config.Config.ListenPort)
+	// }
 
 	// Set up signal channel for graceful shut down
 	shutdown := make(chan os.Signal, 1)
@@ -191,14 +248,12 @@ func serve() {
 
 	// Listen & Serve
 	go func() {
-		logger.Infof("[service] listening on %s", server.Addr)
+		logger.Infof("[service] listening on %s", addr)
 		logger.Infof("[config] Proxy to %v", config.Config.S3Bucket)
 		logger.Infof("[config] AWS Region: %v", config.Config.AwsRegion)
 
-		err := server.ListenAndServe()
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Fatalf("failed starting the server: %s", err.Error())
-		}
+		router.Logger.Fatal(router.Start(addr))
+
 	}()
 
 	<-shutdown
@@ -206,13 +261,13 @@ func serve() {
 
 	// Create a context to allow the server to provide deadline before shutting down
 	// TODO: decide real time so clients don't get interrupted
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(600)*time.Second) // nolint:gomnd
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(600)*time.Second) // nolint:gomnd
 
 	defer func() {
 		cancel()
 	}()
 
-	if err := server.Shutdown(ctx); err != nil {
+	if err := router.Shutdown(ctx); err != nil {
 		logger.Errorf("Failed graceful shutdown", err)
 	}
 }
