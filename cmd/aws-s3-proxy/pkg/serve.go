@@ -68,10 +68,10 @@ func init() {
 	serveCmd.Flags().Bool("insecure-tls", false, "toggle insecure tls")
 	viperBindFlag("insecuretls", serveCmd.Flags().Lookup("insecure-tls"))
 
-	serveCmd.Flags().Int64("cors-max-age", 600, "CORS: max age in seconds")
+	serveCmd.Flags().Int64("cors-max-age", 600, "CORS: max age in seconds") // nolint:gomnd
 	viperBindFlag("corsmaxage", serveCmd.Flags().Lookup("cors-max-age"))
 
-	serveCmd.Flags().Int("max-idle-connections", 150, "max idle connections")
+	serveCmd.Flags().Int("max-idle-connections", 150, "max idle connections") // nolint:gomnd
 	viperBindFlag("maxidleconnections", serveCmd.Flags().Lookup("max-idle-connections"))
 
 	serveCmd.Flags().String("basic-auth-user", "", "username for basic auth")
@@ -137,10 +137,10 @@ func init() {
 		viper.Set("directorylistingformat", "html")
 	}
 
-	serveCmd.Flags().IntP("idle-connection-timeout", "", 10, "idle connection timeout in seconds")
+	serveCmd.Flags().IntP("idle-connection-timeout", "", 10, "idle connection timeout in seconds") // nolint:gomnd
 	viper.Set("idleconntimeout", time.Duration(idleConnTimeout)*time.Second)
 
-	serveCmd.Flags().IntP("guess-bucket-timeout", "", 10, "timeout, in seconds, for guessing bucket region")
+	serveCmd.Flags().IntP("guess-bucket-timeout", "", 10, "timeout, in seconds, for guessing bucket region") // nolint:gomnd
 	viper.Set("guessbuckettimeout", time.Duration(guessBucketTimeout)*time.Second)
 
 	// Configs with default AWS overrides
@@ -181,6 +181,9 @@ func toHTTPError(err error) (int, string) {
 func getS3File(ctx echo.Context) error {
 	c := config.Config
 
+	if len(c.Facility) > 0 {
+		ctx.Response().Writer.Header().Add("Facility", c.Facility)
+	}
 	// Strip the prefix, if it's present.
 	path := ctx.Request().URL.Path
 	if len(c.StripPath) > 0 {
@@ -219,6 +222,7 @@ func echoRouter() *echo.Echo {
 	p.Use(router)
 
 	router.GET("/*", getS3File)
+	router.HEAD("/*", getS3File)
 
 	return router
 }
@@ -236,11 +240,7 @@ func serve(ctx context.Context) {
 	config.Load(logger)
 
 	router := echoRouter()
-
-	// server := &http.Server{
-	// 	Handler: router,
 	addr := net.JoinHostPort(config.Config.ListenAddress, config.Config.ListenPort)
-	// }
 
 	// Set up signal channel for graceful shut down
 	shutdown := make(chan os.Signal, 1)
