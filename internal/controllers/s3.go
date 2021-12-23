@@ -82,6 +82,8 @@ func AwsS3Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer obj.Body.Close()
+
 	setHeadersFromAwsResponse(w, obj, c.HTTPCacheControl, c.HTTPExpires)
 
 	io.Copy(w, obj.Body) // nolint

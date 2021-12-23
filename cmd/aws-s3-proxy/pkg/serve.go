@@ -22,16 +22,6 @@ import (
 	"github.com/spf13/viper"
 
 	"go.uber.org/automaxprocs/maxprocs"
-	"google.golang.org/grpc/credentials"
-
-	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
-
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 
 	"github.com/packethost/aws-s3-proxy/internal/config"
 	"github.com/packethost/aws-s3-proxy/internal/service"
@@ -43,33 +33,6 @@ var serveCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		serve(cmd.Context())
 	},
-}
-
-func newExporter(ctx context.Context) (*otlptrace.Exporter, error) {
-	opts := []otlptracegrpc.Option{
-		otlptracegrpc.WithEndpoint("api.honeycomb.io:443"),
-		otlptracegrpc.WithHeaders(map[string]string{
-			"x-honeycomb-team":    os.Getenv("HONEYCOMB_API_KEY"),
-			"x-honeycomb-dataset": "playground",
-		}),
-		otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")),
-	}
-
-	return otlptrace.New(ctx, otlptracegrpc.NewClient(opts...))
-}
-
-func newTraceProvider(exp *otlptrace.Exporter) *sdktrace.TracerProvider {
-	// The service.name attribute is required.
-	resource :=
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceNameKey.String("artifacts-store"),
-		)
-
-	return sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(exp),
-		sdktrace.WithResource(resource),
-	)
 }
 
 func init() {
@@ -244,6 +207,8 @@ func getS3File(ctx echo.Context) error {
 		return ctx.String(code, message)
 	}
 
+	defer obj.Body.Close()
+
 	return ctx.Stream(http.StatusOK, echo.MIMEOctetStream, obj.Body)
 }
 
@@ -258,10 +223,6 @@ func echoRouter() *echo.Echo {
 	// Metrics
 	p := prometheus.NewPrometheus("echo", nil)
 	p.Use(router)
-
-	// Tracing
-
-	router.Use(otelecho.Middleware("artifacts-store"))
 
 	router.GET("/*", getS3File)
 	router.HEAD("/*", getS3File)
@@ -280,24 +241,6 @@ func serve(ctx context.Context) {
 
 	// This maps the viper values to the Config object
 	config.Load(logger)
-
-	// Tracing
-	exp, err := newExporter(ctx)
-	if err != nil {
-		logger.Fatalf("failed to initialize exporter: %v", err)
-	}
-
-	// Create a new tracer provider with a batch span processor and the otlp exporter.
-	tp := newTraceProvider(exp)
-
-	// Handle this error in a sensible manner where possible
-	defer func() {
-		if err := tp.Shutdown(ctx); err != nil {
-			log.Printf("Error shutting down tracer provider: %v", err)
-		}
-	}()
-
-	otel.SetTracerProvider(tp)
 
 	router := echoRouter()
 	addr := net.JoinHostPort(config.Config.ListenAddress, config.Config.ListenPort)
