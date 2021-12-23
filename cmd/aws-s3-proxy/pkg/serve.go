@@ -187,6 +187,7 @@ func serve(ctx context.Context) {
 	// This maps the viper values to the Config object
 	config.Load(logger)
 
+	// Initialize the aws client to be used
 	service.InitAWSClient(ctx, &config.Config.AwsRegion)
 
 	router := echoRouter()
@@ -209,7 +210,6 @@ func serve(ctx context.Context) {
 	logger.Info("Shutting down")
 
 	// Create a context to allow the server to provide deadline before shutting down
-	// TODO: decide real time so clients don't get interrupted
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(600)*time.Second) // nolint:gomnd
 
 	defer func() {
