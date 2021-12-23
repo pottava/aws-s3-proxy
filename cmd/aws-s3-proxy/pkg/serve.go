@@ -198,7 +198,10 @@ func echoRouter() *echo.Echo {
 			Skipper:   basicAuthSkipper,
 			Validator: basicAuthValidator,
 		}))
-		router.POST("/*", common.WrapHandler(controllers.AwsS3Put))
+
+		if c.EnableUpload {
+			router.POST("/*", common.WrapHandler(controllers.AwsS3Put))
+		}
 	}
 
 	return router
