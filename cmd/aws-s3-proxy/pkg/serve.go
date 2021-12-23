@@ -157,13 +157,6 @@ func init() {
 	}
 }
 
-func getS3File(ctx echo.Context) error {
-	h := common.WrapHandler(controllers.AwsS3Get)
-	h.ServeHTTP(ctx.Response(), ctx.Request())
-
-	return nil
-}
-
 func echoRouter() *echo.Echo {
 	// A labstack/echo router
 	router := echo.New()
@@ -176,8 +169,8 @@ func echoRouter() *echo.Echo {
 	p := prometheus.NewPrometheus("echo", nil)
 	p.Use(router)
 
-	router.GET("/*", getS3File)
-	router.HEAD("/*", getS3File)
+	router.GET("/*", common.WrapHandler(controllers.AwsS3Get))
+	router.HEAD("/*", common.WrapHandler(controllers.AwsS3Get))
 
 	return router
 }
@@ -194,7 +187,7 @@ func serve(ctx context.Context) {
 	// This maps the viper values to the Config object
 	config.Load(logger)
 
-	service.InitClient(ctx, &config.Config.AwsRegion)
+	service.InitAWSClient(ctx, &config.Config.AwsRegion)
 
 	router := echoRouter()
 	addr := net.JoinHostPort(config.Config.ListenAddress, config.Config.ListenPort)
