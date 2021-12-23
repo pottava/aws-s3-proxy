@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -44,21 +42,6 @@ func AwsS3Get(e echo.Context) error {
 	var rangeHeader *string
 	if candidate := req.Header.Get("Range"); !swag.IsZero(candidate) {
 		rangeHeader = aws.String(candidate)
-	}
-
-	// client := service.NewClient(r.Context(), aws.String(config.Config.AwsRegion))
-
-	// Replace path with symlink.json
-	idx := strings.Index(path, "symlink.json")
-	if idx > -1 {
-		replaced, err := replacePathWithSymlink(req.Context(), c.S3Bucket, c.S3KeyPrefix+path[:idx+12])
-		if err != nil {
-			e.Error(err)
-
-			return err
-		}
-
-		path = aws.StringValue(replaced) + path[idx+12:]
 	}
 
 	// Ends with / -> listing or index.html
@@ -117,28 +100,6 @@ func AwsS3Put(e echo.Context) error {
 	return nil
 }
 
-func replacePathWithSymlink(ctx context.Context, bucket, symlinkPath string) (*string, error) {
-	obj, err := service.S3get(ctx, bucket, symlinkPath, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	link := struct {
-		URL string
-	}{}
-
-	buf := new(bytes.Buffer)
-	if _, err = buf.ReadFrom(obj.Body); err != nil {
-		return nil, err
-	}
-
-	if err = json.Unmarshal(buf.Bytes(), &link); err != nil {
-		return nil, err
-	}
-
-	return aws.String(link.URL), nil
-}
-
 func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput, httpCacheControl, httpExpires string) {
 	// Cache-Control
 	if len(httpCacheControl) > 0 {
@@ -179,7 +140,7 @@ func setStrHeader(w http.ResponseWriter, key string, value *string) {
 
 func setIntHeader(w http.ResponseWriter, key string, value *int64) {
 	if value != nil && *value > 0 {
-		w.Header().Add(key, strconv.FormatInt(*value, 10))
+		w.Header().Add(key, strconv.FormatInt(*value, 10)) // nolint
 	}
 }
 
@@ -213,9 +174,7 @@ func s3listFiles(e echo.Context, bucket, prefix string) error {
 		return err
 	}
 
-	e.JSONBlob(http.StatusOK, bytes)
-
-	return nil
+	return e.JSONBlob(http.StatusOK, bytes)
 }
 
 func convertToMaps(s3output *s3.ListObjectsOutput, prefix string) ([]string, map[string]time.Time) {
@@ -252,18 +211,4 @@ func convertToMaps(s3output *s3.ListObjectsOutput, prefix string) ([]string, map
 	sort.Sort(s3objects(files))
 
 	return files, updatedAt
-}
-
-func toHTML(files []string, updatedAt map[string]time.Time) string {
-	html := "<!DOCTYPE html><html><body><ul>"
-	for _, file := range files {
-		html += "<li><a href=\"" + file + "\">" + file + "</a>"
-		if timestamp, ok := updatedAt[file]; ok {
-			html += " " + timestamp.Format(time.RFC3339)
-		}
-
-		html += "</li>"
-	}
-
-	return html + "</ul></body></html>"
 }
