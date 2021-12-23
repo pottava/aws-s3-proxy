@@ -45,15 +45,15 @@ func AwsS3Get(w http.ResponseWriter, r *http.Request) {
 		rangeHeader = aws.String(candidate)
 	}
 
-	client := service.NewClient(r.Context(), aws.String(config.Config.AwsRegion))
+	// client := service.NewClient(r.Context(), aws.String(config.Config.AwsRegion))
 
 	// Replace path with symlink.json
 	idx := strings.Index(path, "symlink.json")
 	if idx > -1 {
-		replaced, err := replacePathWithSymlink(client, c.S3Bucket, c.S3KeyPrefix+path[:idx+12])
+		replaced, err := replacePathWithSymlink(service.Client, c.S3Bucket, c.S3KeyPrefix+path[:idx+12])
 		if err != nil {
 			code, message := toHTTPError(err)
-			log.Printf("error with replacing path for symlink.json:[%d] %s", code, message)
+			c.Logger.Errorf("error with replacing path for symlink.json:[%d] %s", code, message)
 			http.Error(w, message, code)
 
 			return
@@ -65,7 +65,7 @@ func AwsS3Get(w http.ResponseWriter, r *http.Request) {
 	// Ends with / -> listing or index.html
 	if strings.HasSuffix(path, "/") {
 		if c.DirectoryListing {
-			s3listFiles(w, r, client, c.S3Bucket, c.S3KeyPrefix+path)
+			s3listFiles(w, r, service.Client, c.S3Bucket, c.S3KeyPrefix+path)
 
 			return
 		}
@@ -73,10 +73,10 @@ func AwsS3Get(w http.ResponseWriter, r *http.Request) {
 		path += c.IndexDocument
 	}
 	// Get a S3 object
-	obj, err := client.S3get(c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
+	obj, err := service.Client.S3get(c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
 	if err != nil {
 		code, message := toHTTPError(err)
-		log.Printf("error getting s3 object:[%d] %s", code, message)
+		c.Logger.Errorf("error getting s3 object:[%d] %s", code, message)
 		http.Error(w, message, code)
 
 		return
