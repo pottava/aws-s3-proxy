@@ -37,8 +37,6 @@ import (
 	"github.com/packethost/aws-s3-proxy/internal/service"
 )
 
-var tracer = otel.Tracer("artifacts-store")
-
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "serve the s3 proxy",
@@ -57,8 +55,7 @@ func newExporter(ctx context.Context) (*otlptrace.Exporter, error) {
 		otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")),
 	}
 
-	client := otlptracegrpc.NewClient(opts...)
-	return otlptrace.New(ctx, client)
+	return otlptrace.New(ctx, otlptracegrpc.NewClient(opts...))
 }
 
 func newTraceProvider(exp *otlptrace.Exporter) *sdktrace.TracerProvider {
@@ -287,8 +284,9 @@ func serve(ctx context.Context) {
 	// Tracing
 	exp, err := newExporter(ctx)
 	if err != nil {
-		log.Fatalf("failed to initialize exporter: %v", err)
+		logger.Fatalf("failed to initialize exporter: %v", err)
 	}
+
 	// Create a new tracer provider with a batch span processor and the otlp exporter.
 	tp := newTraceProvider(exp)
 
