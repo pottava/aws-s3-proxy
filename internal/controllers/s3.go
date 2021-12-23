@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -50,7 +51,7 @@ func AwsS3Get(w http.ResponseWriter, r *http.Request) {
 	// Replace path with symlink.json
 	idx := strings.Index(path, "symlink.json")
 	if idx > -1 {
-		replaced, err := replacePathWithSymlink(service.Client, c.S3Bucket, c.S3KeyPrefix+path[:idx+12])
+		replaced, err := replacePathWithSymlink(r.Context(), c.S3Bucket, c.S3KeyPrefix+path[:idx+12])
 		if err != nil {
 			code, message := toHTTPError(err)
 			c.Logger.Errorf("error with replacing path for symlink.json:[%d] %s", code, message)
@@ -73,7 +74,7 @@ func AwsS3Get(w http.ResponseWriter, r *http.Request) {
 		path += c.IndexDocument
 	}
 	// Get a S3 object
-	obj, err := service.Client.S3get(c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
+	obj, err := service.Client.S3get(r.Context(), c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
 	if err != nil {
 		code, message := toHTTPError(err)
 		c.Logger.Errorf("error getting s3 object:[%d] %s", code, message)
@@ -126,8 +127,8 @@ func AwsS3Put(w http.ResponseWriter, r *http.Request) {
 	setStrHeader(w, "Location", &obj.Location)
 }
 
-func replacePathWithSymlink(client service.AWS, bucket, symlinkPath string) (*string, error) {
-	obj, err := client.S3get(bucket, symlinkPath, nil)
+func replacePathWithSymlink(ctx context.Context, bucket, symlinkPath string) (*string, error) {
+	obj, err := service.Client.S3get(ctx, bucket, symlinkPath, nil)
 	if err != nil {
 		return nil, err
 	}

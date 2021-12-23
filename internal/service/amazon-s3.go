@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,14 +13,14 @@ import (
 )
 
 // S3get returns a specified object from Amazon S3
-func (c client) S3get(bucket, key string, rangeHeader *string) (*s3.GetObjectOutput, error) {
+func (c client) S3get(ctx context.Context, bucket, key string, rangeHeader *string) (*s3.GetObjectOutput, error) {
 	req := &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		Range:  rangeHeader,
 	}
 
-	return s3.New(c.Session).GetObjectWithContext(c.Context, req)
+	return s3.New(c.Session).GetObjectWithContext(ctx, req)
 }
 
 func (c client) S3put(bucket, key string, b []byte) (*s3manager.UploadOutput, error) {

@@ -169,13 +169,14 @@ func echoRouter() *echo.Echo {
 	router := echo.New()
 
 	// Middleware
+	router.Use(middleware.Logger())
 	router.Use(middleware.Recover())
 
 	// Metrics
 	p := prometheus.NewPrometheus("echo", nil)
 	p.Use(router)
 
-	router.GET("/*", getS3File, middleware.Logger())
+	router.GET("/*", getS3File)
 	router.HEAD("/*", getS3File)
 
 	return router
