@@ -157,13 +157,34 @@ func init() {
 	}
 }
 
+func basicAuthSkipper(e echo.Context) bool {
+	for _, path := range []string{"/metrics", "/_healthcheck"} {
+		if path == e.Request().URL.Path {
+			return true
+		}
+	}
+
+	return false
+}
+
+func basicAuthValidator(user, pass string, e echo.Context) (bool, error) {
+	if user == config.Config.BasicAuthUser && pass == config.Config.BasicAuthPass {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func echoRouter() *echo.Echo {
+	c := config.Config
 	// A labstack/echo router
 	router := echo.New()
 
 	// Middleware
 	router.Use(middleware.Logger())
 	router.Use(middleware.Recover())
+	router.Use(middleware.Decompress())
+	router.Use(middleware.Gzip())
 
 	// Metrics
 	p := prometheus.NewPrometheus("echo", nil)
@@ -171,6 +192,14 @@ func echoRouter() *echo.Echo {
 
 	router.GET("/*", common.WrapHandler(controllers.AwsS3Get))
 	router.HEAD("/*", common.WrapHandler(controllers.AwsS3Get))
+
+	if c.BasicAuthPass != "" && c.BasicAuthUser != "" {
+		router.Use(middleware.BasicAuthWithConfig(middleware.BasicAuthConfig{
+			Skipper:   basicAuthSkipper,
+			Validator: basicAuthValidator,
+		}))
+		router.POST("/*", common.WrapHandler(controllers.AwsS3Put))
+	}
 
 	return router
 }
