@@ -18,7 +18,7 @@ import (
 
 	"github.com/packethost/aws-s3-proxy/internal/config"
 	"github.com/packethost/aws-s3-proxy/internal/controllers"
-	"github.com/packethost/aws-s3-proxy/internal/http"
+	common "github.com/packethost/aws-s3-proxy/internal/http"
 	"github.com/packethost/aws-s3-proxy/internal/service"
 )
 
@@ -158,7 +158,7 @@ func init() {
 }
 
 func getS3File(ctx echo.Context) error {
-	h := http.WrapHandler(controllers.AwsS3Get)
+	h := common.WrapHandler(controllers.AwsS3Get)
 	h.ServeHTTP(ctx.Response(), ctx.Request())
 
 	return nil
