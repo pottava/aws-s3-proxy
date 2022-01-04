@@ -2,29 +2,31 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/labstack/echo-contrib/prometheus"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
 	"go.uber.org/automaxprocs/maxprocs"
 
 	"github.com/packethost/aws-s3-proxy/internal/config"
 	"github.com/packethost/aws-s3-proxy/internal/controllers"
 	common "github.com/packethost/aws-s3-proxy/internal/http"
+	"github.com/packethost/aws-s3-proxy/internal/service"
 )
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "serve the s3 proxy",
 	Run: func(cmd *cobra.Command, args []string) {
-		serve()
+		serve(cmd.Context())
 	},
 }
 
@@ -62,10 +64,10 @@ func init() {
 	serveCmd.Flags().Bool("insecure-tls", false, "toggle insecure tls")
 	viperBindFlag("insecuretls", serveCmd.Flags().Lookup("insecure-tls"))
 
-	serveCmd.Flags().Int64("cors-max-age", 600, "CORS: max age in seconds")
+	serveCmd.Flags().Int64("cors-max-age", 600, "CORS: max age in seconds") // nolint:gomnd
 	viperBindFlag("corsmaxage", serveCmd.Flags().Lookup("cors-max-age"))
 
-	serveCmd.Flags().Int("max-idle-connections", 150, "max idle connections")
+	serveCmd.Flags().Int("max-idle-connections", 150, "max idle connections") // nolint:gomnd
 	viperBindFlag("maxidleconnections", serveCmd.Flags().Lookup("max-idle-connections"))
 
 	serveCmd.Flags().String("basic-auth-user", "", "username for basic auth")
@@ -131,10 +133,10 @@ func init() {
 		viper.Set("directorylistingformat", "html")
 	}
 
-	serveCmd.Flags().IntP("idle-connection-timeout", "", 10, "idle connection timeout in seconds")
+	serveCmd.Flags().IntP("idle-connection-timeout", "", 10, "idle connection timeout in seconds") // nolint:gomnd
 	viper.Set("idleconntimeout", time.Duration(idleConnTimeout)*time.Second)
 
-	serveCmd.Flags().IntP("guess-bucket-timeout", "", 10, "timeout, in seconds, for guessing bucket region")
+	serveCmd.Flags().IntP("guess-bucket-timeout", "", 10, "timeout, in seconds, for guessing bucket region") // nolint:gomnd
 	viper.Set("guessbuckettimeout", time.Duration(guessBucketTimeout)*time.Second)
 
 	// Configs with default AWS overrides
@@ -155,7 +157,57 @@ func init() {
 	}
 }
 
-func serve() {
+func basicAuthSkipper(e echo.Context) bool {
+	for _, path := range []string{"/metrics", "/_healthcheck"} {
+		if path == e.Request().URL.Path {
+			return true
+		}
+	}
+
+	return false
+}
+
+func basicAuthValidator(user, pass string, e echo.Context) (bool, error) {
+	if user == config.Config.BasicAuthUser && pass == config.Config.BasicAuthPass {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func echoRouter() *echo.Echo {
+	c := config.Config
+	// A labstack/echo router
+	router := echo.New()
+
+	// Middleware
+	router.Use(middleware.Logger())
+	router.Use(middleware.Recover())
+	router.Use(middleware.Decompress())
+	router.Use(middleware.Gzip())
+
+	// Metrics
+	p := prometheus.NewPrometheus("echo", nil)
+	p.Use(router)
+
+	router.GET("/*", common.WrapHandler(controllers.AwsS3Get))
+	router.HEAD("/*", common.WrapHandler(controllers.AwsS3Get))
+
+	if c.BasicAuthPass != "" && c.BasicAuthUser != "" {
+		router.Use(middleware.BasicAuthWithConfig(middleware.BasicAuthConfig{
+			Skipper:   basicAuthSkipper,
+			Validator: basicAuthValidator,
+		}))
+
+		if c.EnableUpload {
+			router.POST("/*", common.WrapHandler(controllers.AwsS3Put))
+		}
+	}
+
+	return router
+}
+
+func serve(ctx context.Context) {
 	// Limits GOMAXPROCS in a container
 	undo, err := maxprocs.Set(maxprocs.Logger(logger.Infof))
 	defer undo()
@@ -167,23 +219,11 @@ func serve() {
 	// This maps the viper values to the Config object
 	config.Load(logger)
 
-	// A gorilla/mux router is used to allow for more control
-	router := mux.NewRouter()
-	router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3Get)).Methods("GET")
+	// Initialize the aws client to be used
+	service.InitAWSClient(ctx, &config.Config.AwsRegion)
 
-	// Require Auth for upload
-	if config.Config.EnableUpload {
-		if len(config.Config.BasicAuthPass) > 0 && len(config.Config.BasicAuthUser) > 0 {
-			router.PathPrefix("/").Handler(common.WrapHandler(controllers.AwsS3Put)).Methods("POST")
-		} else {
-			logger.Fatal("Set up basic auth for upload to work")
-		}
-	}
-
-	server := &http.Server{
-		Handler: router,
-		Addr:    net.JoinHostPort(config.Config.ListenAddress, config.Config.ListenPort),
-	}
+	router := echoRouter()
+	addr := net.JoinHostPort(config.Config.ListenAddress, config.Config.ListenPort)
 
 	// Set up signal channel for graceful shut down
 	shutdown := make(chan os.Signal, 1)
@@ -191,28 +231,24 @@ func serve() {
 
 	// Listen & Serve
 	go func() {
-		logger.Infof("[service] listening on %s", server.Addr)
+		logger.Infof("[service] listening on %s", addr)
 		logger.Infof("[config] Proxy to %v", config.Config.S3Bucket)
 		logger.Infof("[config] AWS Region: %v", config.Config.AwsRegion)
 
-		err := server.ListenAndServe()
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Fatalf("failed starting the server: %s", err.Error())
-		}
+		router.Logger.Fatal(router.Start(addr))
 	}()
 
 	<-shutdown
 	logger.Info("Shutting down")
 
 	// Create a context to allow the server to provide deadline before shutting down
-	// TODO: decide real time so clients don't get interrupted
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(600)*time.Second) // nolint:gomnd
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(600)*time.Second) // nolint:gomnd
 
 	defer func() {
 		cancel()
 	}()
 
-	if err := server.Shutdown(ctx); err != nil {
+	if err := router.Shutdown(ctx); err != nil {
 		logger.Errorf("Failed graceful shutdown", err)
 	}
 }

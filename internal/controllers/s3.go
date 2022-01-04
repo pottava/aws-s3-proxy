@@ -1,12 +1,8 @@
 package controllers
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
-	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"reflect"
 	"sort"
@@ -17,17 +13,20 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/go-openapi/swag"
+	"github.com/labstack/echo/v4"
 
 	"github.com/packethost/aws-s3-proxy/internal/config"
 	"github.com/packethost/aws-s3-proxy/internal/service"
 )
 
 // AwsS3Get handles download requests
-func AwsS3Get(w http.ResponseWriter, r *http.Request) {
+func AwsS3Get(e echo.Context) error {
 	c := config.Config
+	req := e.Request()
+	res := e.Response()
 
 	// Strip the prefix, if it's present.
-	path := r.URL.Path
+	path := req.URL.Path
 	if len(c.StripPath) > 0 {
 		path = strings.TrimPrefix(path, c.StripPath)
 	}
@@ -36,114 +35,69 @@ func AwsS3Get(w http.ResponseWriter, r *http.Request) {
 	// then return 200 OK and return.
 	// Note: we want to apply the health check *after* the prefix is stripped.
 	if len(c.HealthCheckPath) > 0 && path == c.HealthCheckPath {
-		w.WriteHeader(http.StatusOK)
-		return
+		res.WriteHeader(http.StatusOK)
+		return nil
 	}
 	// Range header
 	var rangeHeader *string
-	if candidate := r.Header.Get("Range"); !swag.IsZero(candidate) {
+	if candidate := req.Header.Get("Range"); !swag.IsZero(candidate) {
 		rangeHeader = aws.String(candidate)
-	}
-
-	client := service.NewClient(r.Context(), aws.String(config.Config.AwsRegion))
-
-	// Replace path with symlink.json
-	idx := strings.Index(path, "symlink.json")
-	if idx > -1 {
-		replaced, err := replacePathWithSymlink(client, c.S3Bucket, c.S3KeyPrefix+path[:idx+12])
-		if err != nil {
-			code, message := toHTTPError(err)
-			log.Printf("error with replacing path for symlink.json:[%d] %s", code, message)
-			http.Error(w, message, code)
-
-			return
-		}
-
-		path = aws.StringValue(replaced) + path[idx+12:]
 	}
 
 	// Ends with / -> listing or index.html
 	if strings.HasSuffix(path, "/") {
 		if c.DirectoryListing {
-			s3listFiles(w, r, client, c.S3Bucket, c.S3KeyPrefix+path)
-
-			return
+			return s3listFiles(e, c.S3Bucket, c.S3KeyPrefix+path)
 		}
 
 		path += c.IndexDocument
 	}
 	// Get a S3 object
-	obj, err := client.S3get(c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
+	obj, err := service.S3get(req.Context(), c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
 	if err != nil {
-		code, message := toHTTPError(err)
-		log.Printf("error getting s3 object:[%d] %s", code, message)
-		http.Error(w, message, code)
+		e.Error(err)
 
-		return
+		return err
 	}
 
-	setHeadersFromAwsResponse(w, obj, c.HTTPCacheControl, c.HTTPExpires)
+	setHeadersFromAwsResponse(res, obj, c.HTTPCacheControl, c.HTTPExpires)
 
-	io.Copy(w, obj.Body) // nolint
+	return e.Stream(http.StatusOK, echo.MIMEOctetStream, obj.Body)
 }
 
 // AwsS3Put handles upload requests
-func AwsS3Put(w http.ResponseWriter, r *http.Request) {
+func AwsS3Put(e echo.Context) error {
 	c := config.Config
+	req := e.Request()
+	res := e.Response()
 
 	// Strip the prefix, if it's present.
-	path := r.URL.Path
+	path := req.URL.Path
 	if len(c.StripPath) > 0 {
 		path = strings.TrimPrefix(path, c.StripPath)
 	}
 
-	client := service.NewClient(r.Context(), aws.String(config.Config.AwsRegion))
-
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		log.Printf("error reading body: %s", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-
-		return
+		e.Error(err)
+		return err
 	}
-	defer r.Body.Close()
+	defer req.Body.Close()
 	// Put a S3 object
-	obj, err := client.S3put(c.S3Bucket, c.S3KeyPrefix+path, b)
+	obj, err := service.S3put(req.Context(), c.S3Bucket, c.S3KeyPrefix+path, b)
 	if err != nil {
-		code, message := toHTTPError(err)
-		log.Printf("error getting s3 object:[%d] %s", code, message)
-		http.Error(w, message, code)
+		e.Error(err)
 
-		return
+		return err
 	}
 
-	w.WriteHeader(http.StatusAccepted)
-	setStrHeader(w, "ETag", obj.ETag)
-	setStrHeader(w, "VersionID", obj.VersionID)
-	setStrHeader(w, "UploadID", &obj.UploadID)
-	setStrHeader(w, "Location", &obj.Location)
-}
+	res.WriteHeader(http.StatusAccepted)
+	setStrHeader(res, "ETag", obj.ETag)
+	setStrHeader(res, "VersionID", obj.VersionID)
+	setStrHeader(res, "UploadID", &obj.UploadID)
+	setStrHeader(res, "Location", &obj.Location)
 
-func replacePathWithSymlink(client service.AWS, bucket, symlinkPath string) (*string, error) {
-	obj, err := client.S3get(bucket, symlinkPath, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	link := struct {
-		URL string
-	}{}
-
-	buf := new(bytes.Buffer)
-	if _, err = buf.ReadFrom(obj.Body); err != nil {
-		return nil, err
-	}
-
-	if err = json.Unmarshal(buf.Bytes(), &link); err != nil {
-		return nil, err
-	}
-
-	return aws.String(link.URL), nil
+	return nil
 }
 
 func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput, httpCacheControl, httpExpires string) {
@@ -186,7 +140,7 @@ func setStrHeader(w http.ResponseWriter, key string, value *string) {
 
 func setIntHeader(w http.ResponseWriter, key string, value *int64) {
 	if value != nil && *value > 0 {
-		w.Header().Add(key, strconv.FormatInt(*value, 10))
+		w.Header().Add(key, strconv.FormatInt(*value, 10)) // nolint: gomnd
 	}
 }
 
@@ -196,39 +150,31 @@ func setTimeHeader(w http.ResponseWriter, key string, value *time.Time) {
 	}
 }
 
-func s3listFiles(w http.ResponseWriter, r *http.Request, client service.AWS, bucket, prefix string) {
+func s3listFiles(e echo.Context, bucket, prefix string) error {
 	prefix = strings.TrimPrefix(prefix, "/")
 
-	result, err := client.S3listObjects(bucket, prefix)
+	result, err := service.S3listObjects(e.Request().Context(), bucket, prefix)
 	if err != nil {
-		code, message := toHTTPError(err)
-		log.Printf("error listing objects in bucket (%s) :[%d] %s", bucket, code, message)
-		http.Error(w, message, code)
+		e.Error(err)
 
-		return
+		return err
 	}
 
-	files, updatedAt := convertToMaps(result, prefix)
+	files, _ := convertToMaps(result, prefix)
 
 	// Output as a HTML
 	if strings.EqualFold(config.Config.DirListingFormat, "html") {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintln(w, toHTML(files, updatedAt))
-
-		return
+		return e.HTML(http.StatusOK, strings.Join(files, "\n"))
 	}
 
 	// Output as a JSON
 	bytes, err := json.Marshal(files)
 	if err != nil {
-		log.Printf("json marshall error: %s", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-
-		return
+		e.Error(err)
+		return err
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	fmt.Fprintln(w, string(bytes))
+	return e.JSONBlob(http.StatusOK, bytes)
 }
 
 func convertToMaps(s3output *s3.ListObjectsOutput, prefix string) ([]string, map[string]time.Time) {
@@ -265,18 +211,4 @@ func convertToMaps(s3output *s3.ListObjectsOutput, prefix string) ([]string, map
 	sort.Sort(s3objects(files))
 
 	return files, updatedAt
-}
-
-func toHTML(files []string, updatedAt map[string]time.Time) string {
-	html := "<!DOCTYPE html><html><body><ul>"
-	for _, file := range files {
-		html += "<li><a href=\"" + file + "\">" + file + "</a>"
-		if timestamp, ok := updatedAt[file]; ok {
-			html += " " + timestamp.Format(time.RFC3339)
-		}
-
-		html += "</li>"
-	}
-
-	return html + "</ul></body></html>"
 }
