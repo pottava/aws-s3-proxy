@@ -140,7 +140,7 @@ func setStrHeader(w http.ResponseWriter, key string, value *string) {
 
 func setIntHeader(w http.ResponseWriter, key string, value *int64) {
 	if value != nil && *value > 0 {
-		w.Header().Add(key, strconv.FormatInt(*value, 10)) // nolint
+		w.Header().Add(key, strconv.FormatInt(*value, 10)) // nolint: gomnd
 	}
 }
 
