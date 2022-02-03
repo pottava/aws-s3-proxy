@@ -35,6 +35,7 @@ AWS_ACCESS_KEY_ID         | AWS `access key` for API access.                  | 
 AWS_SECRET_ACCESS_KEY     | AWS `secret key` for API access.                  |          | EC2 Instance Role
 AWS_API_ENDPOINT          | The endpoint for AWS API for local development.   |          | -
 INDEX_DOCUMENT            | Name of your index document.                      |          | index.html
+ERROR_DOCUMENT            | Name of the error document.                       |          | 
 DIRECTORY_LISTINGS        | List files when a specified URL ends with /.      |          | false
 DIRECTORY_LISTINGS_FORMAT | Configures directory listing to be `html` (spider parsable) |       | -
 HTTP_CACHE_CONTROL        | Overrides S3's HTTP `Cache-Control` header.       |          | S3 Object metadata

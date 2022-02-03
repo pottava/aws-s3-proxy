@@ -56,6 +56,7 @@ func TestChangeDefaults(t *testing.T) {
 	os.Setenv("IDLE_CONNECTION_TIMEOUT", "60")
 	os.Setenv("DISABLE_COMPRESSION", "FALSE")
 	os.Setenv("INSECURE_TLS", "t")
+	os.Setenv("ERROR_DOCUMENT", "404.html")
 
 	Setup()
 
@@ -69,6 +70,7 @@ func TestChangeDefaults(t *testing.T) {
 	expected.IdleConnTimeout = time.Duration(60) * time.Second
 	expected.DisableCompression = false
 	expected.InsecureTLS = true
+	expected.ErrorDocument = "404.html"
 
 	assert.Equal(t, expected, Config)
 }
