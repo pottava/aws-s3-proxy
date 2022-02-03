@@ -22,6 +22,7 @@ type config struct { // nolint
 	S3Bucket           string        // AWS_S3_BUCKET
 	S3KeyPrefix        string        // AWS_S3_KEY_PREFIX
 	IndexDocument      string        // INDEX_DOCUMENT
+	ErrorDocument      string        // ERROR_DOCUMENT
 	DirectoryListing   bool          // DIRECTORY_LISTINGS
 	DirListingFormat   string        // DIRECTORY_LISTINGS_FORMAT
 	HTTPCacheControl   string        // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
@@ -104,6 +105,7 @@ func Setup() {
 		S3Bucket:           os.Getenv("AWS_S3_BUCKET"),
 		S3KeyPrefix:        os.Getenv("AWS_S3_KEY_PREFIX"),
 		IndexDocument:      indexDocument,
+		ErrorDocument:      os.Getenv("ERROR_DOCUMENT"),
 		DirectoryListing:   directoryListings,
 		DirListingFormat:   os.Getenv("DIRECTORY_LISTINGS_FORMAT"),
 		HTTPCacheControl:   os.Getenv("HTTP_CACHE_CONTROL"),
