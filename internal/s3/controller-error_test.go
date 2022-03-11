@@ -1,4 +1,4 @@
-package controllers
+package s3
 
 import (
 	"errors"
