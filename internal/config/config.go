@@ -82,6 +82,8 @@ func Load(ctx context.Context, l *zap.SugaredLogger) {
 
 	Cfg.PrimaryStore.BuildS3API()
 	Cfg.SecondaryStore.BuildS3API()
+
+	Logger.Info("configuration loaded")
 }
 
 // BuildS3API creates a client per bucket

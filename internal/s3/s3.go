@@ -44,10 +44,10 @@ func get(ctx context.Context, bucket *config.Bucket, key, rangeHeader *string) (
 // Put uploads a file to the bucket
 func put(ctx context.Context, bucket *config.Bucket, key *string, r io.Reader) (*Upload, error) {
 	up := &s3manager.UploadInput{
-		Bucket:          &bucket.Bucket,
-		ACL:             aws.String("public-read"),
-		Key:             key,
-		Body:            r,
+		Bucket: &bucket.Bucket,
+		ACL:    aws.String("public-read"),
+		Key:    key,
+		Body:   r,
 	}
 
 	put, err := s3manager.NewUploader(bucket.Session).UploadWithContext(ctx, up)

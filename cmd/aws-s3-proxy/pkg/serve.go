@@ -213,11 +213,11 @@ func makeRouter() (*echo.Echo, *string) {
 	router := echo.New()
 
 	router.Use(
+		echozaplogger.ZapLogger(logger.Desugar()),
 		middleware.RequestID(),
 		middleware.Recover(),
 		middleware.Decompress(),
 		middleware.Gzip(),
-		echozaplogger.ZapLogger(logger.Desugar()),
 	)
 
 	// Metrics
@@ -264,7 +264,7 @@ func serve(ctx context.Context) {
 
 		if config.Cfg.ReadThrough.Enabled {
 			logger.Infof("[config] Secondary bucket '%s'", config.Cfg.SecondaryStore.Bucket)
-			
+
 			if config.Cfg.SecondaryStore.Session == nil {
 				logger.Error("invalid secoindary bucket session")
 

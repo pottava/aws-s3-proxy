@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +17,12 @@ import (
 
 	"github.com/packethost/aws-s3-proxy/internal/config"
 )
+
+var getStatus *regexp.Regexp
+
+func init() {
+	getStatus = regexp.MustCompile(`status code: (?P<status>\d\d\d),`)
+}
 
 func storeObject(e echo.Context, r io.Reader, path *string) error {
 	c := config.Cfg
@@ -43,13 +50,12 @@ func storeObject(e echo.Context, r io.Reader, path *string) error {
 	return nil
 }
 
-func trySecondary(e echo.Context, path *string) error {
+func trySecondary(e echo.Context) error {
 	c := config.Cfg
 	h := c.HTTPOpts
 	req := e.Request()
 	res := e.Response()
-
-	c.Logger.Debug("Reading through")
+	path := &req.URL.Path
 
 	// Range header
 	var rangeHeader *string
@@ -59,9 +65,15 @@ func trySecondary(e echo.Context, path *string) error {
 
 	get, err := get(req.Context(), &c.SecondaryStore, path, rangeHeader)
 	if err != nil {
-		e.Error(err)
+		status := http.StatusInternalServerError
 
-		return err
+		if getStatus.Match([]byte(err.Error())) {
+			statusStr := getStatus.FindStringSubmatch(err.Error())
+
+			status, _ = strconv.Atoi(statusStr[1])
+		}
+
+		return e.String(status, err.Error())
 	}
 
 	// stream object to client
@@ -91,11 +103,21 @@ func AwsS3Get(e echo.Context) error {
 	get, err := get(req.Context(), &c.PrimaryStore, path, rangeHeader)
 	if err != nil {
 		if c.ReadThrough.Enabled {
-			c.Logger.Errorf("%s not found in '%s', trying '%s'", *path, c.PrimaryStore.Bucket, c.SecondaryStore.Bucket)
-			return trySecondary(e, path)
+			e.Logger().Error("err in primary, trying secondary")
+			return trySecondary(e)
 		}
 
-		return err
+		status := http.StatusInternalServerError
+
+		if getStatus.Match([]byte(err.Error())) {
+			statusStr := getStatus.FindStringSubmatch(err.Error())
+
+			status, _ = strconv.Atoi(statusStr[1])
+		}
+
+		e.Logger().Errorf("status %d", status)
+
+		return e.String(status, err.Error())
 	}
 
 	setHeadersFromAwsResponse(res, get, h.HTTPCacheControl, h.HTTPExpires)
