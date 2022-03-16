@@ -81,6 +81,7 @@ func viperBindFlag(name string, flag *pflag.Flag) {
 		panic(err)
 	}
 }
+
 func setupLogging() {
 	cfg := zap.NewProductionConfig()
 	if viper.GetBool("logging.pretty") {
