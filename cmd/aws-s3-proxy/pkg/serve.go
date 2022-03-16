@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/labstack/echo-contrib/prometheus"
+	echoprom "github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cobra"
@@ -220,7 +220,14 @@ func makeRouter() (*echo.Echo, *string) {
 	)
 
 	// Metrics
-	p := prometheus.NewPrometheus("echo", nil)
+	secondaryStoreCounter := echoprom.Metric{
+		Type:        "counter",
+		Name:        "secondary_store_read_through_total",
+		ID:          "secStoreReadThruReq",
+		Description: "The total requests that read through to the secondary store.",
+	}
+	customMetricList := []*echoprom.Metric{&secondaryStoreCounter}
+	p := echoprom.NewPrometheus("echo", nil, customMetricList)
 	p.Use(router)
 
 	router.GET("/*", s3.Handler(s3.AwsS3Get))
