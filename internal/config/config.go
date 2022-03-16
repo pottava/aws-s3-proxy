@@ -28,8 +28,8 @@ type ReadThrough struct {
 
 // Bucket has the attributes needed to interact with S3 buckets
 type Bucket struct {
-	AccessKey string
-	// Endpoint        string
+	AccessKey       string
+	Endpoint        string
 	IdleConnTimeout time.Duration
 	Bucket          string
 	Region          string
@@ -109,14 +109,15 @@ func (b *Bucket) buildAwsConfig() *aws.Config {
 		},
 	}
 
+	// if unset, not using AWS s3 so meh
 	if b.Region == "" {
-		Cfg.Logger.Panicf("failed to guess region for %s bucket, please specify", b.Bucket)
+		b.Region = "meh"
 	}
 
-	// if b.Endpoint != "" {
-	// 	awsCfg.Endpoint = &b.Endpoint
-	// 	awsCfg.S3ForcePathStyle = aws.Bool(true)
-	// }
+	if b.Endpoint != "" {
+		awsCfg.Endpoint = &b.Endpoint
+		awsCfg.S3ForcePathStyle = aws.Bool(true)
+	}
 
 	return awsCfg
 }

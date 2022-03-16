@@ -115,7 +115,6 @@ func s3Flags() {
 		{
 			long:     "bucket",
 			describe: "bucket name",
-			required: true,
 		},
 		{
 			long:     "endpoint",

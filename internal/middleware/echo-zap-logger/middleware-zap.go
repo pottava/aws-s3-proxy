@@ -41,12 +41,13 @@ func ZapLogger(log *zap.Logger) echo.MiddlewareFunc {
 			}
 
 			n := res.Status
+
 			switch {
-			case n >= 500:
+			case n >= 500: //nolint: gomnd
 				log.With(zap.Error(err)).Error("Server error", fields...)
-			case n >= 400:
+			case n >= 400: //nolint: gomnd
 				log.With(zap.Error(err)).Warn("Client error", fields...)
-			case n >= 300:
+			case n >= 300: //nolint: gomnd
 				log.Info("Redirection", fields...)
 			default:
 				log.Info("Success", fields...)
