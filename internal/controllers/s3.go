@@ -194,7 +194,11 @@ func convertToMaps(s3output *s3.ListObjectsOutput, prefix string) ([]string, map
 	for file := range candidates {
 		files = append(files, file)
 	}
-	sort.Sort(s3objects(files))
+	if config.Config.ReverseSorting {
+		sort.Sort(reversedS3objects(files))
+	} else {
+		sort.Sort(s3objects(files))
+	}
 
 	return files, updatedAt
 }
