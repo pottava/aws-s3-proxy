@@ -58,6 +58,7 @@ MAX_IDLE_CONNECTIONS      | Allowed number of idle connections to the S3 storage
 IDLE_CONNECTION_TIMEOUT   | Allowed timeout to the S3 storage.                |          | 10
 DISABLE_COMPRESSION       | If true will pass encoded content through as-is.  |          | true
 INSECURE_TLS              | If true it will skip cert checks                  |          | false
+REVERSE_SORTING           | If true it will sort in descending order          |          | false
 
 ### 2. Run the application
 
