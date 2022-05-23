@@ -1,3 +1,6 @@
 vendor/*
 dist/*
 docker-compose.override.yml
+.vscode/
+internal/.DS_Store
+internal/service/.DS_Store
