@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"reflect"
 	"sort"
@@ -36,13 +35,15 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+
 	// Range header
 	var rangeHeader *string
 	if candidate := r.Header.Get("Range"); !swag.IsZero(candidate) {
 		rangeHeader = aws.String(candidate)
 	}
 
-	client := service.NewClient(r.Context(), aws.String(config.Config.AwsRegion))
+	ctx := r.Context()
+	client := service.NewClient(ctx, aws.String(config.Config.AwsRegion), 0, 0)
 
 	// Replace path with symlink.json
 	idx := strings.Index(path, "symlink.json")
@@ -63,16 +64,21 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 		}
 		path += c.IndexDocument
 	}
+	fmt.Println("1111--------111")
 	// Get a S3 object
-	obj, err := client.S3get(c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
-	if err != nil {
+	fmt.Println(c.S3Bucket, "path: ", path)
+	if obj, err := client.S3get(c.S3Bucket, c.S3KeyPrefix+path, rangeHeader); err == nil {
+		setHeadersFromAwsResponse(w, obj, c.HTTPCacheControl, c.HTTPExpires)
+	}
+
+	if err := client.S3Download(w, c.S3Bucket, c.S3KeyPrefix+path, rangeHeader); err != nil {
 		code, message := toHTTPError(err)
 		http.Error(w, message, code)
 		return
+	} else {
+		fmt.Println(err)
 	}
-	setHeadersFromAwsResponse(w, obj, c.HTTPCacheControl, c.HTTPExpires)
 
-	io.Copy(w, obj.Body) // nolint
 }
 
 func replacePathWithSymlink(client service.AWS, bucket, symlinkPath string) (*string, error) {
@@ -120,24 +126,23 @@ func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput, h
 	setStrHeader(w, "ETag", obj.ETag)
 	setTimeHeader(w, "Last-Modified", obj.LastModified)
 
-	w.WriteHeader(determineHTTPStatus(obj))
 }
 
 func setStrHeader(w http.ResponseWriter, key string, value *string) {
 	if value != nil && len(*value) > 0 {
-		w.Header().Add(key, *value)
+		w.Header().Set(key, *value)
 	}
 }
 
 func setIntHeader(w http.ResponseWriter, key string, value *int64) {
 	if value != nil && *value > 0 {
-		w.Header().Add(key, strconv.FormatInt(*value, 10))
+		w.Header().Set(key, strconv.FormatInt(*value, 10))
 	}
 }
 
 func setTimeHeader(w http.ResponseWriter, key string, value *time.Time) {
 	if value != nil && !reflect.DeepEqual(*value, time.Time{}) {
-		w.Header().Add(key, value.UTC().Format(http.TimeFormat))
+		w.Header().Set(key, value.UTC().Format(http.TimeFormat))
 	}
 }
 

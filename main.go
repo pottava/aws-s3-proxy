@@ -38,6 +38,7 @@ func main() {
 	log.Printf("[service] listening on %s", addr)
 
 	if (len(config.Config.SslCert) > 0) && (len(config.Config.SslKey) > 0) {
+
 		log.Fatal(http.ListenAndServeTLS(
 			addr, config.Config.SslCert, config.Config.SslKey, nil,
 		))
