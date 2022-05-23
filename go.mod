@@ -7,4 +7,5 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-openapi/swag v0.19.5
 	github.com/stretchr/testify v1.3.0
+	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2 // indirect
 )
