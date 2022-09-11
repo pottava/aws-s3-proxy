@@ -1,0 +1,45 @@
+name: Release build
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  docker-image-2-0:
+    name: v2.0
+    runs-on: ubuntu-18.04
+    env:
+      IMAGE_NAME: docker.pkg.github.com/${{ github.repository }}/linux:2.0
+
+    steps:
+      - name: 1. Checkout the code
+        uses: actions/checkout@v2
+
+      - name: 3. Get branch name
+        run: echo "BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)" >> $GITHUB_ENV
+
+      - name: 6.c. Setup Nexus uploader
+        uses: actions/setup-node@v1
+        with:
+          always-auth: true
+          node-version: 12.16.1
+          registry-url: "https://npm.vantrix.tv"
+          scope: "@lml"
+
+      - name: 8. Login to Nexus docker
+        uses: docker/login-action@v1
+        with:
+          registry: docker.vantrix.tv
+          username: ${{ secrets.REPO_USERNAME }}
+          password: ${{ secrets.REPO_PASSWORD }}
+
+      - name: 9. Push docker image to Nexus docker
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: |
+            docker.vantrix.tv/go-/${{ github.event.repository.name }}:${{ env.BRANCH }}
+
+
