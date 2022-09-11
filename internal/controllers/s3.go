@@ -70,7 +70,19 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, message, code)
 		return
 	}
-	setHeadersFromAwsResponse(w, obj, c.HTTPCacheControl, c.HTTPExpires)
+	// Get the content type header from a <key>.minfo object if present to override the object content type
+	var contentType string
+	obj_minfo, err_minfo := client.S3get(c.S3Bucket, c.S3KeyPrefix+path+".minfo", nil)
+	if err_minfo == nil {
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(obj_minfo.Body)
+		strs := strings.Split(buf.String(), "=")
+		if len(strs) == 2 {
+			contentType = strs[1]
+		}
+	}
+
+	setHeadersFromAwsResponse(w, obj, c.HTTPCacheControl, c.HTTPExpires, &contentType)
 
 	io.Copy(w, obj.Body) // nolint
 }
@@ -93,7 +105,7 @@ func replacePathWithSymlink(client service.AWS, bucket, symlinkPath string) (*st
 	return aws.String(link.URL), nil
 }
 
-func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput, httpCacheControl, httpExpires string) {
+func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput, httpCacheControl, httpExpires string, mInfoContentType *string) {
 
 	// Cache-Control
 	if len(httpCacheControl) > 0 {
@@ -116,7 +128,11 @@ func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput, h
 		setIntHeader(w, "Content-Length", obj.ContentLength)
 	}
 	setStrHeader(w, "Content-Range", obj.ContentRange)
-	setStrHeader(w, "Content-Type", obj.ContentType)
+	if len(*mInfoContentType) > 0 {
+		setStrHeader(w, "Content-Type", mInfoContentType)
+	} else {
+		setStrHeader(w, "Content-Type", obj.ContentType)
+	}
 	setStrHeader(w, "ETag", obj.ETag)
 	setTimeHeader(w, "Last-Modified", obj.LastModified)
 
