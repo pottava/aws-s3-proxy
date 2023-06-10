@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"reflect"
 	"sort"
@@ -50,6 +51,9 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 		replaced, err := replacePathWithSymlink(client, c.S3Bucket, c.S3KeyPrefix+path[:idx+12])
 		if err != nil {
 			code, message := toHTTPError(err)
+			if c.VerboseLog {
+				log.Printf(message)
+			}
 			http.Error(w, message, code)
 			return
 		}
@@ -58,7 +62,7 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 	// Ends with / -> listing or index.html
 	if strings.HasSuffix(path, "/") {
 		if c.DirectoryListing {
-			s3listFiles(w, r, client, c.S3Bucket, c.S3KeyPrefix+path)
+			s3listFiles(w, r, client, c.S3Bucket, c.S3KeyPrefix+path, c.VerboseLog)
 			return
 		}
 		path += c.IndexDocument
@@ -67,6 +71,9 @@ func AwsS3(w http.ResponseWriter, r *http.Request) {
 	obj, err := client.S3get(c.S3Bucket, c.S3KeyPrefix+path, rangeHeader)
 	if err != nil {
 		code, message := toHTTPError(err)
+		if c.VerboseLog {
+			log.Printf(message)
+		}
 		http.Error(w, message, code)
 		return
 	}
@@ -141,12 +148,15 @@ func setTimeHeader(w http.ResponseWriter, key string, value *time.Time) {
 	}
 }
 
-func s3listFiles(w http.ResponseWriter, r *http.Request, client service.AWS, bucket, prefix string) {
+func s3listFiles(w http.ResponseWriter, r *http.Request, client service.AWS, bucket, prefix string, verboseLog bool) {
 	prefix = strings.TrimPrefix(prefix, "/")
 
 	result, err := client.S3listObjects(bucket, prefix)
 	if err != nil {
 		code, message := toHTTPError(err)
+		if verboseLog {
+			log.Printf(message)
+		}
 		http.Error(w, message, code)
 		return
 	}
